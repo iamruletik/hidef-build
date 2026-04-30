@@ -1,0 +1,1 @@
+console.log("Hello, Hidef! This is the main entry point of the application.")
