@@ -1,7 +1,6 @@
 console.log("LOCAL DEVELOPMENT")
 
 //Image fetch for the artist
-document.addEventListener("DOMContentLoaded", (event) => {
 
   let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
   let rosterFloatingImage = document.querySelector('.roster-floating-image')
@@ -16,5 +15,3 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }, true)
 
   })
-
-});
