@@ -5,9 +5,9 @@ console.log("LOCAL DEVELOPMENT")
 let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
 let rosterFloatingImage = document.querySelector('.roster-floating-image')
 
-rosterItems.forEach((artist) => {
+console.log(rosterItems)
 
-    console.log(rosterItems)
+rosterItems.forEach((artist) => {
 
 let artistCurrentImage = artist.querySelector('.roster-list-table-content-item-image')
 
