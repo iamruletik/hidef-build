@@ -2,16 +2,18 @@ console.log("LOCAL DEVELOPMENT")
 
 //Image fetch for the artist
 
-  let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
-  let rosterFloatingImage = document.querySelector('.roster-floating-image')
+let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
+let rosterFloatingImage = document.querySelector('.roster-floating-image')
 
-  rosterItems.forEach((artist) => {
+rosterItems.forEach((artist) => {
 
-    let artistCurrentImage = artist.querySelector('.roster-list-table-content-item-image')
+    console.log(rosterItems)
 
-    artist.addEventListener('mouseenter', (e) => {
-      rosterFloatingImage.style.opacity = 1
-      rosterFloatingImage.src = artistCurrentImage.src
-    }, true)
+let artistCurrentImage = artist.querySelector('.roster-list-table-content-item-image')
 
-  })
+artist.addEventListener('mouseenter', (e) => {
+    rosterFloatingImage.style.opacity = 1
+    rosterFloatingImage.src = artistCurrentImage.src
+}, true)
+
+})
