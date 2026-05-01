@@ -12,11 +12,11 @@ if (LOCAL !== true) {
     views: [{
         namespace: 'roster',
         beforeEnter(data) {
+
+            console.log("Barba Roster")
             //Image fetch for the artist
             let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
             let rosterFloatingImage = document.querySelector('.roster-floating-image')
-
-            console.log(rosterItems)
 
             rosterItems.forEach((artist) => {
 
@@ -30,9 +30,9 @@ if (LOCAL !== true) {
             })
         }
     }, {
-        namespace: 'contact',
+        namespace: 'archive',
         beforeEnter(data) {
-        // do something before entering the `contact` namespace
+            console.log("Barba Archive")
         }
     }]
     });
