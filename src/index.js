@@ -1,19 +1,26 @@
 console.log("LOCAL DEVELOPMENT")
 
-//Image fetch for the artist
+if (LOCAL !== true) {
+    console.log("LOCAL NOT DETECTED")
 
-let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
-let rosterFloatingImage = document.querySelector('.roster-floating-image')
 
-console.log(rosterItems)
 
-rosterItems.forEach((artist) => {
+    //Image fetch for the artist
 
-let artistCurrentImage = artist.querySelector('.roster-list-table-content-item-image')
+    let rosterItems = document.querySelectorAll('.roster-list-table-content-item')
+    let rosterFloatingImage = document.querySelector('.roster-floating-image')
 
-artist.addEventListener('mouseenter', (e) => {
-    rosterFloatingImage.style.opacity = 1
-    rosterFloatingImage.src = artistCurrentImage.src
-}, true)
+    console.log(rosterItems)
 
-})
+    rosterItems.forEach((artist) => {
+
+    let artistCurrentImage = artist.querySelector('.roster-list-table-content-item-image')
+
+    artist.addEventListener('mouseenter', (e) => {
+        rosterFloatingImage.style.opacity = 1
+        rosterFloatingImage.src = artistCurrentImage.src
+    }, true)
+
+    })
+
+}

@@ -1,0 +1,28 @@
+<script>
+  async function checkResource(url) {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      return response.ok; // Returns true if resource exists (status 200-299)
+    } catch (error) {
+      return false; // Network error or URL unreachable
+    }
+  }
+
+  // Example usage:
+  checkResource('http://localhost:3000/global.js').then((exists) => {
+    console.log(exists ? 'Available' : 'Not Found');
+
+    if (exists) {
+      fallback('http://localhost:3000/global.js');
+    } else {
+      fallback('https://iamruletik.github.io/hidef-build/dist/global.js');
+    }
+  });
+
+  function fallback(link) {
+    var element = document.createElement('script');
+    element.type = 'text/javascript';
+    element.src = link; // or your path to your local script
+    document.body.appendChild(element);
+  }
+</script>
