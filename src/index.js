@@ -3,7 +3,7 @@ console.log("LOCAL DEVELOPMENT")
 if (LOCAL !== true) {
     console.log("LOCAL NOT DETECTED")
 
-
+    LOCAL = true
 
     //Image fetch for the artist
 
