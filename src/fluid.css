@@ -1,0 +1,5 @@
+  html { font-size: 0.9375rem; }
+  @media screen and (max-width:1920px) { html { font-size: 0.9375rem; } }
+  @media screen and (max-width:1440px) { html { font-size: calc(0.5357142857142857rem + 0.4464285714285714vw); } }
+  @media screen and (max-width:768px) { html { font-size: calc(0.571087786259542rem + 0.7633587786259542vw); } }
+  @media screen and (max-width:375px) { html { font-size: calc(0.6241644385026738rem + 1.3368983957219251vw); } }

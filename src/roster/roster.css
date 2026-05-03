@@ -1,0 +1,24 @@
+  .roster-floating-image-wrapper {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .roster-floating-image {
+    right: 15%;
+    top: 20%;
+  }
+
+/*Counting Roster List Items*/
+  .roster-list-table-content-item-number::after {
+    content: "00" counter(rosterlist);
+  }
+
+  .roster-list-table-content-item:nth-child(n+10) > .roster-list-table-content-item-number::after {
+    content: "0" counter(rosterlist);
+  }
+
+  .roster-list-table-content-item:nth-child(n+100) > .roster-list-table-content-item-number::after {
+    content: counter(rosterlist);
+  }
