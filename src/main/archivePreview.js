@@ -110,7 +110,7 @@ export default function archivePreviewInit() {
 
     // Animation Loop
     function animate() {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animate)
 
         // Slowly spin the entire carousel
 

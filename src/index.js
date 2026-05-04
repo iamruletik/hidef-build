@@ -16,7 +16,7 @@ import archiveInit from './archive/archive'
 import projectInit from './archive/project'
 import discoBallInit from './main/disco'
 import starburstInit from './main/starburst'
-import archivePreviewInit from './main/archivePreview'
+import { archivePreview } from './main/archiveCylinder'
 import Lenis from 'lenis'
 
 
@@ -30,6 +30,7 @@ if (LOCAL !== true) {
 
     preloaderInit()
     headerInit()
+    let ap = new archivePreview()
 
     //Create Transition Div
     let defaultTransititonContainer = createTransitionContainer()
@@ -71,11 +72,16 @@ if (LOCAL !== true) {
     views: [{
         //MAIN PAGE
         namespace: 'main',
-        beforeEnter(data) {
+        afterEnter(data) {
             console.log("Barba Main")
-            //discoBallInit()
-            //starburstInit()
-            archivePreviewInit()
+            discoBallInit()
+            starburstInit()
+            //archivePreviewInit()
+            ap.create()
+            ap.start()
+        },
+        beforeLeave() {
+            ap.stop()
         }
     },{
         //ROSTER PAGE
