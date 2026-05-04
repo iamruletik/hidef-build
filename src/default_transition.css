@@ -23,6 +23,11 @@
 
 
 .transition-container-content-text {
-    color: white;
-    font-size:  1.25rem;
+    font-variation-settings: "wght" 250, "wdth" 50;
+    text-transform: uppercase;
+    padding-bottom: 1.25rem;
+    font-family: Martian Mono, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1;
+    color: #F4F4ED;
 }

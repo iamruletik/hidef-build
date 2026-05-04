@@ -21,83 +21,54 @@ if (LOCAL !== true) {
     headerInit()
 
     //Create Transition Div
-    let transitionDiv = document.createElement("div")
-    transitionDiv.classList.add("transition-wrapper")
+    let defaultTransititonContainer = createTransitionContainer()
 
+
+    //Transitions Setup
     barba.init({
     prevent: null,
     preventRunning: false,
     transitions: [{
         name: 'default-transition',
         sync: false,
-        before(data) {
-
-            console.log("BEFORE")
-            //CREATE TRANSITION DIV
-            transitionDiv.innerHTML = `
-            <div class="transition-container">
-                <div class="transition-container-content">
-                    <div class="transition-container-content-text"></div>
-                </div>
-            </div>
-            `
-            gsap.set(transitionDiv, {
-                yPercent: 100
-            })
-            document.body.append(transitionDiv)
-
-        },
+        before(data) { console.log("BEFORE") },
         beforeLeave(data) { console.log("BEFORE LEAVE") },
-        leave: (data) => {
-        return new Promise(resolve => {
-            console.log("LEAVE")
-            gsap.to(data.current.container, {
-                y: 100,
-                autoAlpha: 0
-            })
-            gsap.to(transitionDiv, {
-                yPercent: 0,
-                ease: "expo.inOut",
-                onComplete: () => { resolve() }
-            })
-        });
-        },
+        leave(data) { console.log("LEAVE")},
         afterLeave(data) { console.log("AFTER LEAVE") },
-        beforeEnter(data) {
-            console.log("BEFORE ENTER")
-            let text = document.querySelector(".transition-container-content-text")
-             text.innerText = data.next.namespace.toUpperCase()
+
+        beforeEnter: (data) =>  {
+            return new Promise(resolve => {
+                console.log("BEFORE ENTER")
+
+                //GET NAME OF NEXT PAGE
+                let text = document.querySelector(".transition-container-content-text")
+                text.innerText = data.next.namespace.toUpperCase()
+
+                leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
+            })
         },
+
         enter(data) { console.log("ENTER")},
         afterEnter(data) { console.log("AFTER ENTER") },
-        after(data) {
-            console.log("AFTER")
 
-            gsap.to(transitionDiv, {
-                //delay: 0.6,
-                yPercent: -100,
-                ease: "expo.inOut",
-                onComplete: () =>  transitionDiv.remove()
-            })
-
-            gsap.from(data.next.container, {
-                y: 100,
-                autoAlpha: 0
+        after: (data) => {
+            return new Promise(resolve => {
+                console.log("ENTER")
+                enterAnimation(data.current.container, defaultTransititonContainer, resolve)
             })
         }
     }],
+
     views: [{
         //MAIN PAGE
         namespace: 'main',
         beforeEnter(data) {
-
             console.log("Barba Main")
         }
     },{
         //ROSTER PAGE
         namespace: 'roster',
         beforeEnter(data) {
-
             console.log("Barba Roster")
             rosterInit()
         }
@@ -105,25 +76,59 @@ if (LOCAL !== true) {
         //ARCHIVE PAGE
         namespace: 'archive',
         beforeEnter(data) {
-
             console.log("Barba Archive")
-
         }
     }]
     });
 
 
+
+    //CREATE TRANSITION CONTAINER IN THE DOM
+    function createTransitionContainer() {
+
+        //Create Element
+        let transitionDiv = document.createElement("div")
+        transitionDiv.classList.add("transition-wrapper")
+        
+        //Layout
+        transitionDiv.innerHTML = `
+        <div class="transition-container">
+            <div class="transition-container-content">
+                <div class="transition-container-content-text"></div>
+            </div>
+        </div>
+        `
+        
+        gsap.set(transitionDiv, { yPercent: 100})
+        document.body.append(transitionDiv)
+
+        return transitionDiv;
+    }
+    
+    //DEFAULT BARBA LEAVE ANIMATION
+    function leaveAnimation(barbaContainer, transitionContainer, resolve) {
+        let leave = gsap.timeline()
+            leave.set(transitionContainer, { yPercent: 100})
+            leave.to(barbaContainer, { y: 100, autoAlpha: 0 })
+            leave.to(transitionContainer, { yPercent: 0, ease: "expo.inOut", onComplete: () => { resolve() }})
+    }
+
+    //DEFAULT BARBA ENTER ANIMATION
+    function enterAnimation(barbaContainer, transitionContainer, resolve) {
+        let enter = gsap.timeline()
+            enter.from(barbaContainer, { y: 100, autoAlpha: 0 })
+            enter.to(transitionContainer, { yPercent: -100, ease: "expo.inOut", onComplete: () => { resolve() }})
+    }
+
+
+
+
     //INIT LENIS
-      const lenis = new Lenis();
-    
-      // Use requestAnimationFrame to continuously update the scroll
-      function raf(time) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
-      }
-    
-      requestAnimationFrame(raf);
-
-
-
+    const lenis = new Lenis()
+    // Use requestAnimationFrame to continuously update the scroll
+    function raf(time) {
+        lenis.raf(time)
+        requestAnimationFrame(raf)
+    }
+    requestAnimationFrame(raf)
 }
