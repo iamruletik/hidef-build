@@ -4,11 +4,12 @@ import './preloader.css'
 import Lenis from 'lenis'
 import './lenis.css'
 import './default_transition.css'
-import rosterInit from './roster/roster'
-import './roster/roster.css'
 import headerInit from './header/header'
 import './header/header.css'
-
+import rosterInit from './roster/roster'
+import './roster/roster.css'
+import archiveInit from './archive/archive'
+import './archive/archive.css'
 
 
 
@@ -39,11 +40,9 @@ if (LOCAL !== true) {
         beforeEnter: (data) =>  {
             return new Promise(resolve => {
                 console.log("BEFORE ENTER")
-
-                //GET NAME OF NEXT PAGE
+                //Get name of the nex page
                 let text = document.querySelector(".transition-container-content-text")
                 text.innerText = data.next.namespace.toUpperCase()
-
                 leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
             })
         },
@@ -77,6 +76,7 @@ if (LOCAL !== true) {
         namespace: 'archive',
         beforeEnter(data) {
             console.log("Barba Archive")
+            archiveInit()
         }
     }]
     });

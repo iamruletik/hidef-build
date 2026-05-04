@@ -1,0 +1,27 @@
+  .archive-content-projects-list-item-top {
+    background-image: url("data:image/svg+xml,%3Csvg width='49' height='10' viewBox='0 0 49 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M36.8624 0H4C1.79086 0 0 1.79086 0 4V9.32976H48.7232C47.5777 9.32976 46.4872 8.83868 45.728 7.98096L39.8576 1.3488C39.0983 0.49108 38.0078 0 36.8624 0Z' fill='%2361B0EE'/%3E%3C/svg%3E%0A");
+    background-repeat: no-repeat;
+    background-origin: border-box;
+    background-position-y: bottom;
+    background-size: 100%;
+  }
+
+  .archive-content-projects-list-item-bottom-back {
+    transform: skew(0deg) scaleY(1);
+    transition: transform 0.2s ease-in-out;
+}
+
+  .archive-content-projects-list-item:hover  .archive-content-projects-list-item-bottom-back {
+    transform: skew(-8deg) scaleY(1.025);
+    transition: transform 0.2s ease-in-out;
+  }
+
+    .archive-content-projects-list-item-bottom-file {
+    transform: scaleY(1);
+    transition: transform 0.2s ease-in-out;
+}
+
+  .archive-content-projects-list-item:hover  .archive-content-projects-list-item-bottom-file {
+    transform: scaleY(1.1);
+    transition: transform 0.2s ease-in-out;
+  }
