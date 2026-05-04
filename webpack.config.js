@@ -14,7 +14,7 @@ module.exports = {
     umdNamedDefine: true,
     clean: true,
   },
-    module: {
+  module: {
         rules: [
         {
             test: /\.css$/i,
@@ -22,4 +22,16 @@ module.exports = {
         },
         ],
     },
+      performance: {
+    maxEntrypointSize: 1024000,
+    maxAssetSize: 1024000
+  },
+    resolve: {
+      alias: {
+          three: path.resolve('./node_modules/three')
+      },
+  }
 };
+
+
+

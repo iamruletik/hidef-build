@@ -1,5 +1,6 @@
 import barba from '@barba/core'
 import './fluid.css'
+import './main.css'
 import './preloader/preloader.css'
 import './lenis.css'
 import './default_transition.css'
@@ -72,8 +73,8 @@ if (LOCAL !== true) {
         namespace: 'main',
         beforeEnter(data) {
             console.log("Barba Main")
-            discoBallInit()
-            starburstInit()
+            //discoBallInit()
+            //starburstInit()
             archivePreviewInit()
         }
     },{
