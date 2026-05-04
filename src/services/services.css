@@ -1,0 +1,7 @@
+  .about-content-headline-description-category div::before {
+    content: "(0" counter(service) ") ";
+  }
+
+  .about-content-headline-description-category:nth-child(n+10) > .div::before {
+    content: "(" counter(service) ") ";
+  }

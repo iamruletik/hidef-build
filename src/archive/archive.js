@@ -1,6 +1,6 @@
 export default function archiveInit() {
 
-let projectsArray = document.querySelectorAll('.project-content')
+  let projectsArray = document.querySelectorAll('.project-content')
   let projectsData = []
   let allCategoriesData = []
   let allCategoriesDataID = []

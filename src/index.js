@@ -1,15 +1,23 @@
 import barba from '@barba/core'
 import './fluid.css'
-import './preloader.css'
-import Lenis from 'lenis'
+import './preloader/preloader.css'
 import './lenis.css'
 import './default_transition.css'
-import headerInit from './header/header'
 import './header/header.css'
-import rosterInit from './roster/roster'
 import './roster/roster.css'
-import archiveInit from './archive/archive'
 import './archive/archive.css'
+import './services/services.css'
+import './about/about.css'
+import preloaderInit from './preloader/preloader'
+import headerInit from './header/header'
+import rosterInit from './roster/roster'
+import archiveInit from './archive/archive'
+import projectInit from './archive/project'
+import discoBallInit from './main/disco'
+import starburstInit from './main/starburst'
+import archivePreviewInit from './main/archivePreview'
+import Lenis from 'lenis'
+
 
 
 
@@ -19,6 +27,7 @@ if (LOCAL !== true) {
     //MAKE SURE THAT ONLY ONE SCRIPT WORKS BY SETTING LOCAL TO TRUE
     LOCAL = true
 
+    preloaderInit()
     headerInit()
 
     //Create Transition Div
@@ -63,6 +72,9 @@ if (LOCAL !== true) {
         namespace: 'main',
         beforeEnter(data) {
             console.log("Barba Main")
+            discoBallInit()
+            starburstInit()
+            archivePreviewInit()
         }
     },{
         //ROSTER PAGE
@@ -77,6 +89,13 @@ if (LOCAL !== true) {
         beforeEnter(data) {
             console.log("Barba Archive")
             archiveInit()
+        }
+    }, {
+        //PROJECT PAGE
+        namespace: 'project',
+        beforeEnter(data) {
+            console.log("Barba Project")
+            projectInit()
         }
     }]
     });
