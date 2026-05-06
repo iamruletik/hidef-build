@@ -28,7 +28,8 @@ module.exports = {
   },
     resolve: {
       alias: {
-          three: path.resolve('./node_modules/three')
+          three: path.resolve('./node_modules/three'),
+          '@barba': path.resolve(__dirname, 'node_modules/@barba/core/dist/barba.mjs'),
       },
   }
 };

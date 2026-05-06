@@ -1,0 +1,9 @@
+#noise {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    z-index: 999999;
+    pointer-events: none;
+    opacity: .03;
+    mix-blend-mode: multiply;
+}

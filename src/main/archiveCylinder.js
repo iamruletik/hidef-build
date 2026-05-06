@@ -3,7 +3,7 @@ import * as THREE from 'three'
 export class archivePreview {
 
   constructor() {
-        this.scene = new THREE.Scene()
+        this.scene = new THREE.Scene() 
         this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000)
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         this.carousel = new THREE.Group()
@@ -107,11 +107,12 @@ export class archivePreview {
         return shape
     }
     
-    
+    console.log(this.renderer.info.memory)
   }
 
   start() {
     console.log(this.container)
+    console.log(this.renderer.info.memory)
     this.container.appendChild(this.renderer.domElement)
     this.renderer.setAnimationLoop(() => {
         this.carousel.rotation.y -= 0.0003
@@ -121,10 +122,16 @@ export class archivePreview {
 
    stop() {
     console.log("Destroy")
+    console.log(this.renderer.info.memory)
         this.renderer.clear()
         this.renderer.setAnimationLoop(null)
         this.renderer.dispose()
 
+    }
+
+    show() {
+        console.log("SHOWED")
+        console.log(this.renderer.info.memory)
     }
 
 }

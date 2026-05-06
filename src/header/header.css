@@ -1,10 +1,4 @@
-  a {
-    color: inherit !important;
-  }
-  a:visited {
-    color: inherit !important;
-  }
-  
   .hidef-logo-link {
     cursor: pointer;
+    transform-origin: left center;
   }

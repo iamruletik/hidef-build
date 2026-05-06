@@ -35,3 +35,25 @@
     }
   }
 </script>
+
+<script>
+  //Image fetch for the artist
+  document.addEventListener('DOMContentLoaded', (event) => {
+    
+    let footerLogoInstance = document.querySelector('.footer-logo-instance-stretched')
+
+    gsap.to(footerLogoInstance, {
+      scrollTrigger: {
+        trigger: '.footer-content-grid',
+        endTrigger: ".footer-content-container",
+        start: 'bottom bottom',
+        end: 'bottom bottom',
+        //markers: true,
+        scrub: true
+      },
+      height: '100%',
+      ease: "none"
+    })
+    
+  })
+</script>

@@ -10,7 +10,6 @@ export default function projectInit() {
     progressBarElement.style.transform = "translate(-" + progress + "%)"
     progressBarNumber.innerText = Math.abs(Math.round(progress-100)) + "%"
 
-    console.log(progress, window.scrollY, document.body.scrollHeight)
   })
 
 }

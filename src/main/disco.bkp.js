@@ -120,3 +120,111 @@ export default function discoBallInit() {
   animate();
 
 }
+
+
+this.gltfLoader.load(this.pathToGLTFScene, (gltf) => {
+
+        //Iterate through all objects from GLTF file and add them to the provided scene
+        const children = [...gltf.scene.children]
+        for (const child of children) { this.scene.add(child) }
+
+        //Set Shadow for Soccer Field Outer
+        let soccerFieldOuter = this.scene.getObjectByName("SoccerFieldOuter")
+        soccerFieldOuter.receiveShadow = true
+
+        //Find Soccer Field Object and set it to recieve shadows
+        this.soccerField = this.scene.getObjectByName(this.soccerFieldObjectName)
+        this.soccerField.receiveShadow = true
+        this.soccerField.castShadow = false
+
+        //Find Soccer Inner Stripe
+        let soccerFieldStripe = this.scene.getObjectByName("SoccerFieldStripe")
+        soccerFieldStripe.material.map.offset.x = 0
+        soccerFieldStripe.material.emissiveMap.offset.x = 0
+        soccerFieldStripe.material.emissiveIntensity = 10
+
+        //Animate Ads Strip
+        gsap.to(soccerFieldStripe.material.map.offset, {
+          x: -1,
+          repeat: -1,
+          ease: "none",
+          duration: 20
+        })
+
+        //Animate Ads Strip
+        gsap.to(soccerFieldStripe.material.emissiveMap.offset, {
+          x: -1,
+          repeat: -1,
+          ease: "none",
+          duration: 20
+        }) 
+
+        ///Find Soccer Inner Stripe
+        let fieldEmission = this.scene.getObjectByName("SoccerField")
+        //fieldEmission.material.toneMapped = false
+        //fieldEmission.material.emissive = new THREE.Color(0xFF0600)
+        fieldEmission.material.emissiveIntensity = 15
+        //Animate Ads Strip
+        gsap.to(fieldEmission.material, {
+          emissiveIntensity: 0,
+          repeat: -1,
+          yoyo: true,
+          duration: 3
+        }) 
+
+
+        //Create Convex Hull Colliders for Specific Objects in the Scene
+        //colliderCreator.create(this.objectNames)
+
+        //Save Bottles in the Array
+        for (const objectName of this.bottleNames) { 
+          let temp = this.scene.getObjectByName(objectName)
+          temp.material.alphaTest = 0.1 
+          this.bottles.push(temp)
+        }
+
+
+    })
+
+
+
+            this.gltfLoader.load(
+    
+                this.modelLink,
+    
+                (gltf) => {
+    
+                    this.discoball = gltf.scene
+    
+                    const box = new THREE.Box3().setFromObject(this.discoball)
+                    const center = box.getCenter(new THREE.Vector3())
+                    this.discoball.position.sub(center)
+                    this.discoball.position.y += 0.25
+                    this.scene.add(this.discoball)
+    
+    
+                    gsap.to(this.discoball.position, {
+                        z: -5,
+                        y: 2,
+                        scrollTrigger: {
+                            trigger: '#mainSection',
+                            start: 'top top',
+                            scrub: 1,
+                        }
+                    })
+    
+                    gsap.to(".webgl_wrapper canvas", {
+                        opacity: 0,
+                        scrollTrigger: {
+                            trigger: '#mainSection',
+                            start: 'top top',
+                            scrub: 1,
+                        }
+                    })
+    
+                },
+                undefined,
+                function (error) {
+                    console.error('An error happened loading the GLB:', error);
+                }
+            )

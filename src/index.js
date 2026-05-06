@@ -1,6 +1,6 @@
 import barba from '@barba/core'
 import './fluid.css'
-import './main.css'
+import './general.css'
 import './preloader/preloader.css'
 import './lenis.css'
 import './default_transition.css'
@@ -9,14 +9,18 @@ import './roster/roster.css'
 import './archive/archive.css'
 import './services/services.css'
 import './about/about.css'
+import './noise/noise.css'
+import './menu/menu.css'
 import preloaderInit from './preloader/preloader'
+import createNoise from './noise/noise'
 import headerInit from './header/header'
+import { Menu } from './menu/menu'
 import rosterInit from './roster/roster'
 import archiveInit from './archive/archive'
 import projectInit from './archive/project'
-import discoBallInit from './main/disco'
-import starburstInit from './main/starburst'
-import { archivePreview } from './main/archiveCylinder'
+import { mainView } from './main/main'
+import { Disco } from './main/discoball'
+import { Footer } from './footer/footer'
 import Lenis from 'lenis'
 
 
@@ -28,12 +32,34 @@ if (LOCAL !== true) {
     //MAKE SURE THAT ONLY ONE SCRIPT WORKS BY SETTING LOCAL TO TRUE
     LOCAL = true
 
+    //INIT LENIS
+    const lenis = new Lenis()
+    // Use requestAnimationFrame to continuously update the scroll
+    function raf(time) {
+        lenis.raf(time)
+        requestAnimationFrame(raf)
+    }
+    requestAnimationFrame(raf)
+
     preloaderInit()
     headerInit()
-    let ap = new archivePreview()
+    createNoise()
+
+    //Create Global Things
+    let footer = new Footer()
+    footer.setup()
+
+    let menu = new Menu()
+    menu.setup(lenis)
+    
+    let discoball = new Disco()
+    discoball.load()
 
     //Create Transition Div
     let defaultTransititonContainer = createTransitionContainer()
+
+    //Create Main View
+    let home
 
 
     //Transitions Setup
@@ -65,6 +91,7 @@ if (LOCAL !== true) {
             return new Promise(resolve => {
                 console.log("ENTER")
                 enterAnimation(data.current.container, defaultTransititonContainer, resolve)
+                footer.update()
             })
         }
     }],
@@ -72,16 +99,18 @@ if (LOCAL !== true) {
     views: [{
         //MAIN PAGE
         namespace: 'main',
-        afterEnter(data) {
+        beforeEnter(data) {
             console.log("Barba Main")
-            discoBallInit()
-            starburstInit()
-            //archivePreviewInit()
-            ap.create()
-            ap.start()
+            home = new mainView()
+            home.setup() 
+        },
+        afterEnter() {
+            home.run()
+            discoball.animate()
         },
         beforeLeave() {
-            ap.stop()
+            home = null
+            discoball.killAnimate()
         }
     },{
         //ROSTER PAGE
@@ -145,16 +174,4 @@ if (LOCAL !== true) {
             enter.from(barbaContainer, { y: 100, autoAlpha: 0 })
             enter.to(transitionContainer, { yPercent: -100, ease: "expo.inOut", onComplete: () => { resolve() }})
     }
-
-
-
-
-    //INIT LENIS
-    const lenis = new Lenis()
-    // Use requestAnimationFrame to continuously update the scroll
-    function raf(time) {
-        lenis.raf(time)
-        requestAnimationFrame(raf)
-    }
-    requestAnimationFrame(raf)
 }
