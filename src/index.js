@@ -25,15 +25,21 @@ import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
 import Lenis from 'lenis'
 
-
 //INIT LENIS
-const lenis = new Lenis()
-// Use requestAnimationFrame to continuously update the scroll
-function raf(time) {
-    lenis.raf(time)
-    requestAnimationFrame(raf)
-}
-requestAnimationFrame(raf)
+// Initialize a new Lenis instance for smooth scrolling
+const lenis = new Lenis({ lerp: 0.1 })
+
+// Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
+lenis.on('scroll', ScrollTrigger.update)
+
+// Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
+// This ensures Lenis's smooth scroll animation updates on each GSAP tick
+gsap.ticker.add((time) => {
+    lenis.raf(time * 1000) // Convert time from seconds to milliseconds
+})
+
+// Disable lag smoothing in GSAP to prevent any delay in scroll animations
+gsap.ticker.lagSmoothing(0)
 
 
 headerInit()
@@ -47,20 +53,48 @@ preloader.load()
 let footer = new Footer()
 footer.setup()
 
-let menu = new Menu()
-menu.setup(lenis)
-
 let discoball = new Disco()
-downloadDiscoModel(discomodel)
+let discoScene = downloadDiscoModel(discomodel)
 downloadHDRI(hdri)
+
+
+let menuEvents = {
+    openMenu: new CustomEvent('menuOpened', {
+        detail: {
+            name: 'Menu Opened'
+        }
+    }),
+    closeMenu: new CustomEvent('menuClosed', {
+        detail: {
+            name: 'Menu Closed'
+        }
+    })
+}
+
+let menu = new Menu()
+menu.setup(lenis, menuEvents)
+let menuTimeline
+
+document.addEventListener('menuOpened', () => {
+    menuTimeline = gsap.timeline({
+        onReverseComplete: () => {
+            menuTimeline.kill()
+            console.log(menuTimeline)
+        }
+    })
+    discoball.animateToMenu(menuTimeline)
+    console.log('Menu Opened')
+})
+
+document.addEventListener('menuClosed', () => {
+    discoball.revertMenuAnimation(menuTimeline)
+    console.log('Menu Closed')
+})
 
 let defaultTransititonContainer = createTransitionContainer()
 
 //Create Main View
 let home
-
-
-
 
 
 
@@ -72,7 +106,10 @@ barba.init({
         name: 'default-transition',
         sync: false,
         before(data) { console.log("BEFORE") },
-        beforeLeave(data) { console.log("BEFORE LEAVE") },
+        beforeLeave(data) { 
+            console.log("BEFORE LEAVE")
+            console.log(data)
+         },
         leave(data) { console.log("LEAVE") },
         afterLeave(data) { console.log("AFTER LEAVE") },
 
@@ -108,10 +145,11 @@ barba.init({
         },
         afterEnter() {
             home.run()
-
+            discoball.scrollHomeAnimation()
         },
         beforeLeave() {
             home = null
+            discoball.destroyHomeAnimation()
         }
     }, {
         //ROSTER PAGE
@@ -119,6 +157,7 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Roster")
             rosterInit()
+            discoball.animateToHeader()
         }
     }, {
         //ARCHIVE PAGE
@@ -126,6 +165,7 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Archive")
             archiveInit()
+            discoball.animateToHeader()
         }
     }, {
         //PROJECT PAGE
@@ -133,9 +173,31 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Project")
             projectInit()
+            discoball.animateToHeader()
+        }
+    }, {
+        //ABOUT PAGE
+        namespace: 'about',
+        beforeEnter(data) {
+            console.log("Barba About")
+           discoball.animateToHeader()
+        }
+    }, {
+        //SERVICES PAGE
+        namespace: 'services',
+        beforeEnter(data) {
+            console.log("Barba Services")
+            discoball.animateToHeader()
+        }
+    }, {
+        //ARTIST PAGE
+        namespace: 'artist',
+        beforeEnter(data) {
+            console.log("Barba ARTIST")
+            discoball.animateToHeader()
         }
     }]
-});
+})
 
 
 
@@ -186,11 +248,11 @@ async function downloadDiscoModel(url) {
         if (response.ok) {
             console.log('GLTF is Downloaded')
             const data = await response.arrayBuffer()
-            const model = await discoball.loadModel(data)
+            const scene = await discoball.loadModel(data)
             preloader.finish()
-            discoball.run(model)
+            discoball.run(scene.children[0])
             discoball.createShaderPlane()
-            //console.log(model)
+            return scene
             // ...do something with the response
         } else {
             // Custom message for failed HTTP codes
@@ -208,5 +270,6 @@ async function downloadDiscoModel(url) {
 
 //DOWNLOAD ASYNC HDRI
 async function downloadHDRI(url) {
-        const response = await discoball.loadHDRI(url)
+    const response = await discoball.loadHDRI(url)
 }
+

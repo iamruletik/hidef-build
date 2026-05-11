@@ -7,7 +7,7 @@ export class Disco {
     constructor() {
         this.scene = new THREE.Scene()
         this.container = document.querySelector('.disco-container')
-        this.mainContainer = document.querySelector("main")
+        this.mainContainer = document.querySelector('main')
         this.camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 100)
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         this.model = null
@@ -17,7 +17,8 @@ export class Disco {
             uniforms: {
                 iTime: { value: 0.0 },
                 iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        }})
+            }
+        })
     }
 
 
@@ -50,7 +51,7 @@ export class Disco {
             this.scene.add(this.model)
             this.setupScene()
             this.renderer.render(this.scene, this.camera)
-            return this.model
+            return this.scene
 
         } catch (error) {
             console.error('Error loading GLTF:', error)
@@ -88,6 +89,8 @@ export class Disco {
             this.camera.updateProjectionMatrix()
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
         })
+
+        return this.camera
     }
 
     run(model) {
@@ -106,7 +109,7 @@ export class Disco {
     createShaderPlane() {
 
         const vertexShaderSource =
-        `
+            `
             varying vec2 vUv;
             void main() {
                 vUv = uv; // Pass UVs to fragment shader
@@ -115,7 +118,7 @@ export class Disco {
         `
 
         const fragmentShaderSource =
-        `
+            `
             precision highp float;
             uniform vec2 iResolution;
             uniform float iTime;
@@ -186,22 +189,83 @@ export class Disco {
         `
 
 
-       
+
         this.shaderMaterial.vertexShader = vertexShaderSource
         this.shaderMaterial.fragmentShader = fragmentShaderSource
         this.shaderMaterial.transparent = true // Matches your alpha logic
-        this.shaderMaterial.blending = THREE.AdditiveBlending, 
-        this.shaderMaterial.depthWrite = false
+        this.shaderMaterial.blending = THREE.AdditiveBlending,
+            this.shaderMaterial.depthWrite = false
 
 
-        const geometry = new THREE.PlaneGeometry(3, 2.5)
-        const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } )
-        const plane = new THREE.Mesh( geometry, this.shaderMaterial )
-        this.scene.add( plane )
+        const geometry = new THREE.PlaneGeometry(3, 2)
+        const material = new THREE.MeshBasicMaterial({ color: 0xffff00 })
+        const plane = new THREE.Mesh(geometry, this.shaderMaterial)
+        this.scene.add(plane)
 
 
+    }
 
+    scrollHomeAnimation() {
 
+        gsap.to(this.scene.position, {
+            y: 0,
+            z: 0,
+            duration: 1,
+            ease: 'expo.inOut'
+        })
+
+        let home = gsap.timeline({
+            id: 'homeScrolltrigger',
+            scrollTrigger: {
+                id: "homeScrolltrigger",
+                trigger: this.container,
+                start: 'bottom 75%',
+                end: 'bottom top',
+                scrub: 1,
+                //markers: true
+            }
+        })
+
+        home.to(this.scene.position, {
+            y: 1.8,
+            z: -3.5
+        })
+
+    }
+
+    destroyHomeAnimation() {
+        let timeline = gsap.getById('homeScrolltrigger')
+        //timeline.revert()
+        timeline.kill()
+        this.animateToHeader()
+    }
+
+    animateToHeader() {
+        gsap.to(this.scene.position, {
+            y: 1.8,
+            z: -3.5
+        })
+    }
+
+    animateToMenu(timeline) {
+        timeline.clear()
+        timeline.to(this.scene.position, {
+            y: 0.5,
+            z: -2,
+            ease: 'expo.inOut',
+            duration: 1
+        })
+    }
+
+    revertMenuAnimation(timeline) {
+        timeline.reverse()
+    }
+
+    setToHeader() {
+        gsap.set(this.scene.position, {
+            y: 1.8,
+            z: -3.5
+        })
     }
 
 }

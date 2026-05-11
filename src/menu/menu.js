@@ -10,7 +10,9 @@ export class Menu {
 
     }
 
-    setup(lenis) {
+    setup(lenis, menuEvents) {
+
+        console.log(menuEvents)
 
         this.menuContainer.classList.remove('w-condition-invisible')
 
@@ -60,12 +62,14 @@ export class Menu {
                 this.menuAnimation.play()
                 menuOpen = true
                 lenis.stop()
+                document.dispatchEvent(menuEvents.openMenu)
 
             } else if (menuOpen) {
 
                 this.menuAnimation.reverse()
                 menuOpen = false
                 lenis.start()
+                document.dispatchEvent(menuEvents.closeMenu)
 
             }
 
