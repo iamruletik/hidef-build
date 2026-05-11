@@ -11,54 +11,12 @@ export class Disco {
         this.camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 100)
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         this.model = null
-        this.HDRILink = "https://storage.googleapis.com/radiance/wooden_studio_17_1k.hdr"
+        this.hdri = null
         this.hdrLoader = new HDRLoader()
         this.menuButton = document.querySelector('.menu_button')
         this.menuLinks = document.querySelectorAll('.menu-large-link')
         this.scrollTimeline = null
     }
-
-    /*async load() {
-        // Use arrow functions to maintain 'this' context
-        try {
-            let namespace
-            barba.hooks.beforeEnter((data) => {
-                console.log('Now in namespace:', data.next.namespace)
-                namespace = data.next.namespace
-            })
-            await this.getGLTF()
-            await this.getHDRI()
-            this.setupScene()
-            if (namespace == "main") { this.animate() }
-            else {
-                this.discoball.position.y = 2
-                this.discoball.position.z = -5
-            }
-
-            this.changeThis()
-            return this.run()
-        } catch (err) {
-            return console.error("Loading failed:", err)
-        }
-    }
-
-    getGLTF() {
-        return new Promise((resolve, reject) => {
-            this.gltfLoader.load(
-                this.modelLink,
-                (gltf) => {
-                    this.discoball = gltf.scene; // GLTF result has a .scene property
-
-                    this.centerModel(this.discoball)
-
-                    this.scene.add(this.discoball)
-                    resolve()
-                },
-                undefined, // Progress callback
-                (error) => reject(error) // Error callback
-            )
-        })
-    } */
 
 
     async loadModel(contents) {
@@ -68,55 +26,47 @@ export class Disco {
         try {
             const gltf = await loader.parseAsync(contents)
             this.model = gltf.scene
-            this.centerModel(this.model)
+
+            const standardMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color( 0xffffff ),
+                roughness: 0.1,
+                metalness: 1,
+                flatShading: true
+            })
+
+            const plasticMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color( 0x212121),
+                roughness: 0.3,
+            })
+
+
+            this.model.children[0].material = plasticMaterial //HOLDER
+            this.model.children[1].material = standardMaterial //INNER
+            this.model.children[2].material = standardMaterial //OUTER
+
+
             this.scene.add(this.model)
             this.setupScene()
             this.renderer.render(this.scene, this.camera)
-
-
             return this.model
+
         } catch (error) {
-            console.error('Error loading GLTF:', error);
+            console.error('Error loading GLTF:', error)
         }
 
     }
 
 
-    async loadHDRI(contents) {
-
+    async loadHDRI(url) {
         const loader = new HDRLoader()
-
         try {
-            const gltf = await loader.parseAsync(contents)
-
-
-            return this.model
+            this.hdri = await loader.loadAsync(url)
+            this.hdri.mapping = THREE.EquirectangularReflectionMapping
+            this.scene.environment = this.hdri
+            return this.hdri
         } catch (error) {
-            console.error('Error loading HDRI:', error);
+            console.error('Error loading HDRI:', error)
         }
-
-
-
-        return new Promise((resolve, reject) => {
-            this.hdrLoader.load(
-                this.HDRILink,
-                (texture) => {
-                    texture.mapping = THREE.EquirectangularReflectionMapping
-                    this.scene.environment = texture
-                    resolve()
-                },
-                undefined, // Progress callback
-                (error) => reject(error) // Error callback
-            )
-        })
-    }
-
-    centerModel(model) {
-        // Center the model
-        let box = new THREE.Box3().setFromObject(model)
-        let center = box.getCenter(new THREE.Vector3())
-        model.position.sub(center)
-        model.position.y += 0.25
     }
 
     setupScene() {
@@ -129,17 +79,6 @@ export class Disco {
         this.renderer.toneMappingExposure = 1.2
         this.renderer.setClearColor(0x000000, 0)
         this.container.appendChild(this.renderer.domElement)
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
-        this.scene.add(ambientLight)
-
-        const pinkLight = new THREE.PointLight(0xff00aa, 50)
-        pinkLight.position.set(2, 2, 2)
-        this.scene.add(pinkLight)
-
-        const blueLight = new THREE.PointLight(0x00aaff, 50)
-        blueLight.position.set(-2, -2, 2)
-        this.scene.add(blueLight)
 
 
         window.addEventListener('resize', () => {
@@ -157,6 +96,8 @@ export class Disco {
             this.renderer.render(this.scene, this.camera)
         })
     }
+
+
 
 
 
@@ -247,3 +188,17 @@ export class Disco {
         */
 
 }
+
+
+/*        return new Promise((resolve, reject) => {
+            this.hdrLoader.load(
+                this.HDRILink,
+                (texture) => {
+                    texture.mapping = THREE.EquirectangularReflectionMapping
+                    this.scene.environment = texture
+                    resolve()
+                },
+                undefined, // Progress callback
+                (error) => reject(error) // Error callback
+            )
+        })*/

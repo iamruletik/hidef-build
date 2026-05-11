@@ -19,10 +19,6 @@ export class Preloader {
         progressNumber.innerText = Math.round(this.progress() * 100) + "%"
       }
     })
-
-
-
-    console.log(this.randomPosition)
   
     gsap.to(this.preloaderTimeline, {
       progress: this.randomPosition

@@ -1,4 +1,4 @@
-const path = require("path");
+const path = require("path")
 
 module.exports = {
   mode: "production",
@@ -21,7 +21,7 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
       {
-        test: /\.(glb)$/i,
+        test: /\.(glb|hdr)$/i,
         loader: 'file-loader',
         options: {
           name: '[name].[ext]',

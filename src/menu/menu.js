@@ -32,7 +32,7 @@ export class Menu {
             autoAlpha: 1
         })
 
-        console.log(this.runningLine)
+        //console.log(this.runningLine)
 
         if (this.runningLine) {
             this.menuAnimation.to(this.runningLine, {

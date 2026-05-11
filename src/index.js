@@ -1,5 +1,6 @@
 import barba from '@barba/core'
 import discomodel from './glb/discoball.glb'
+import hdri from './glb/hdri.hdr'
 import './fluid.css'
 import './general.css'
 import './preloader/preloader.css'
@@ -51,57 +52,12 @@ menu.setup(lenis)
 
 let discoball = new Disco()
 downloadDiscoModel(discomodel)
+downloadHDRI(hdri)
 
 let defaultTransititonContainer = createTransitionContainer()
 
 //Create Main View
 let home
-
-
-
-async function downloadDiscoModel(url) {
-    try {
-
-        const response = await fetch(url)
-
-        if (response.ok) {
-            console.log('Promise resolved and HTTP status is successful')
-            const data = await response.arrayBuffer()
-            watchedState.value = 'expectedValue'
-            const model = await discoball.loadModel(data)
-            preloader.finish()
-            discoball.run(model)
-            console.log(model)
-            
-            // ...do something with the response
-        } else {
-            // Custom message for failed HTTP codes
-            if (response.status === 404) throw new Error('404, Not found');
-            if (response.status === 500) throw new Error('500, internal server error');
-            // For any other server error
-            throw new Error(response.status)
-        }
-    } catch (error) {
-        console.error('Fetch', error)
-        // Output e.g.: "Fetch Error: 404, Not found"
-    }
-}
-
-const state = { value: 0 }
-
-const watchedState = new Proxy(state, {
-    set(target, property, newValue) {
-        console.log(`${property} changed from ${target[property]} to ${newValue}`);
-        target[property] = newValue; // Update the value
-
-        // Trigger your "wait" logic here
-        if (newValue === 'expectedValue') {
-            console.log('DOWNLOADED')
-            
-        }
-        return true; // Indicates success
-    }
-});
 
 
 
@@ -219,4 +175,38 @@ function enterAnimation(barbaContainer, transitionContainer, resolve) {
     let enter = gsap.timeline()
     enter.from(barbaContainer, { y: 100, autoAlpha: 0 })
     enter.to(transitionContainer, { yPercent: -100, ease: "expo.inOut", onComplete: () => { resolve() } })
+}
+
+
+//DOWNLOAD ASYNC GLTF MODEL
+async function downloadDiscoModel(url) {
+    try {
+
+        const response = await fetch(url)
+
+        if (response.ok) {
+            console.log('GLTF is Downloaded')
+            const data = await response.arrayBuffer()
+            const model = await discoball.loadModel(data)
+            preloader.finish()
+            discoball.run(model)
+            //console.log(model)
+            // ...do something with the response
+        } else {
+            // Custom message for failed HTTP codes
+            if (response.status === 404) throw new Error('404, Not found');
+            if (response.status === 500) throw new Error('500, internal server error');
+            // For any other server error
+            throw new Error(response.status)
+        }
+    } catch (error) {
+        console.error('Fetch', error)
+        // Output e.g.: "Fetch Error: 404, Not found"
+    }
+}
+
+
+//DOWNLOAD ASYNC HDRI
+async function downloadHDRI(url) {
+        const response = await discoball.loadHDRI(url)
 }
