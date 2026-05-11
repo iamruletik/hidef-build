@@ -1,5 +1,5 @@
 const path = require("path");
- 
+
 module.exports = {
   mode: "production",
   entry: {
@@ -15,22 +15,29 @@ module.exports = {
     clean: true,
   },
   module: {
-        rules: [
-        {
-            test: /\.css$/i,
-            use: ["style-loader", "css-loader"],
+    rules: [
+      {
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"],
+      },
+      {
+        test: /\.(glb)$/i,
+        loader: 'file-loader',
+        options: {
+          name: '[name].[ext]',
         },
-        ],
-    },
-      performance: {
+      }
+    ],
+  },
+  performance: {
     maxEntrypointSize: 1024000,
     maxAssetSize: 1024000
   },
-    resolve: {
-      alias: {
-          three: path.resolve('./node_modules/three'),
-          '@barba': path.resolve(__dirname, 'node_modules/@barba/core/dist/barba.mjs'),
-      },
+  resolve: {
+    alias: {
+      three: path.resolve('./node_modules/three'),
+      //'@barba': path.resolve(__dirname, 'node_modules/@barba/core/dist/barba.mjs'),
+    },
   }
 };
 

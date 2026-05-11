@@ -1,25 +1,51 @@
-export default function preloaderInit() {
+export class Preloader {
 
-  let progressNumber = document.querySelector('.preloader-progress-bar-number')
-  let preloaderTimeline = gsap.timeline().pause()
+  constructor() {
+    this.preloaderTimeline = gsap.timeline().pause()
+    this.randomPosition = gsap.utils.random(0.3, 1)
+  }
 
-  preloaderTimeline.to(".preloader-progress-bar", {
-    xPercent: 100,
-    duration: 0.3,
-    onUpdate: function () {
-      progressNumber.innerText = Math.round(this.progress() * 100) + "%"
-    }
-  })
 
-  preloaderTimeline.to(".preloader-wrapper", {
-    delay: 0.3,
-    yPercent: -100,
-    duration: 0.5
-  })
+  load() {
 
-  document.addEventListener("DOMContentLoaded", (event) => {
-    preloaderTimeline.play()
-  })
+    let progressNumber = document.querySelector('.preloader-progress-bar-number')
+    let preloaderProgressBar = document.querySelector('.preloader-progress-bar')
+
+    this.preloaderTimeline.to(preloaderProgressBar, {
+      xPercent: 100,
+      duration: 0.3,
+      ease: "none",
+      onUpdate: function () {
+        progressNumber.innerText = Math.round(this.progress() * 100) + "%"
+      }
+    })
+
+
+
+    console.log(this.randomPosition)
+  
+    gsap.to(this.preloaderTimeline, {
+      progress: this.randomPosition
+    })
+
+  }
+
+  finish() {
+
+    let preloaderWrapper = document.querySelector('.preloader-wrapper')
+
+    gsap.to(this.preloaderTimeline, {
+      progress: 1
+    })
+
+    gsap.to(preloaderWrapper, {
+      delay: 0.3,
+      yPercent: -100,
+      duration: 0.5
+    })
+
+  }
+
 
 
 }

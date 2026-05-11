@@ -6,21 +6,19 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
 export class Disco {
     constructor() {
         this.scene = new THREE.Scene()
-        this.discoball = null
         this.container = document.querySelector('.disco-container')
         this.mainContainer = document.querySelector("main")
         this.camera = new THREE.PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 100)
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-        this.modelLink = "https://storage.googleapis.com/radiance/disco_ball_with_colored_lights.glb"
+        this.model = null
         this.HDRILink = "https://storage.googleapis.com/radiance/wooden_studio_17_1k.hdr"
-        this.gltfLoader = new GLTFLoader()
         this.hdrLoader = new HDRLoader()
         this.menuButton = document.querySelector('.menu_button')
         this.menuLinks = document.querySelectorAll('.menu-large-link')
         this.scrollTimeline = null
     }
 
-    async load() {
+    /*async load() {
         // Use arrow functions to maintain 'this' context
         try {
             let namespace
@@ -51,7 +49,7 @@ export class Disco {
                 (gltf) => {
                     this.discoball = gltf.scene; // GLTF result has a .scene property
 
-                    this.centerModel()
+                    this.centerModel(this.discoball)
 
                     this.scene.add(this.discoball)
                     resolve()
@@ -60,10 +58,45 @@ export class Disco {
                 (error) => reject(error) // Error callback
             )
         })
+    } */
+
+
+    async loadModel(contents) {
+
+        const loader = new GLTFLoader()
+
+        try {
+            const gltf = await loader.parseAsync(contents)
+            this.model = gltf.scene
+            this.centerModel(this.model)
+            this.scene.add(this.model)
+            this.setupScene()
+            this.renderer.render(this.scene, this.camera)
+
+
+            return this.model
+        } catch (error) {
+            console.error('Error loading GLTF:', error);
+        }
+
     }
 
 
-    getHDRI() {
+    async loadHDRI(contents) {
+
+        const loader = new HDRLoader()
+
+        try {
+            const gltf = await loader.parseAsync(contents)
+
+
+            return this.model
+        } catch (error) {
+            console.error('Error loading HDRI:', error);
+        }
+
+
+
         return new Promise((resolve, reject) => {
             this.hdrLoader.load(
                 this.HDRILink,
@@ -78,12 +111,12 @@ export class Disco {
         })
     }
 
-    centerModel() {
+    centerModel(model) {
         // Center the model
-        let box = new THREE.Box3().setFromObject(this.discoball)
+        let box = new THREE.Box3().setFromObject(model)
         let center = box.getCenter(new THREE.Vector3())
-        this.discoball.position.sub(center)
-        this.discoball.position.y += 0.25
+        model.position.sub(center)
+        model.position.y += 0.25
     }
 
     setupScene() {
@@ -116,14 +149,18 @@ export class Disco {
         })
     }
 
-    run() {
+    run(model) {
         this.renderer.setAnimationLoop(() => {
-            if (this.discoball) {
-                this.discoball.rotation.y += 0.1 // Speed it up slightly
+            if (model) {
+                model.rotation.y += 0.1 // Speed it up slightly
             }
             this.renderer.render(this.scene, this.camera)
         })
     }
+
+
+
+    /*
 
     animate() {
         //Animate on scroll
@@ -207,5 +244,6 @@ export class Disco {
 
 
     }
+        */
 
 }
