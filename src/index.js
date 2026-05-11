@@ -108,11 +108,10 @@ barba.init({
         },
         afterEnter() {
             home.run()
-            discoball.animate()
+
         },
         beforeLeave() {
             home = null
-            discoball.killAnimate()
         }
     }, {
         //ROSTER PAGE
@@ -190,6 +189,7 @@ async function downloadDiscoModel(url) {
             const model = await discoball.loadModel(data)
             preloader.finish()
             discoball.run(model)
+            discoball.createShaderPlane()
             //console.log(model)
             // ...do something with the response
         } else {

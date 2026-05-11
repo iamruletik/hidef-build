@@ -12,10 +12,12 @@ export class Disco {
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         this.model = null
         this.hdri = null
-        this.hdrLoader = new HDRLoader()
-        this.menuButton = document.querySelector('.menu_button')
-        this.menuLinks = document.querySelectorAll('.menu-large-link')
-        this.scrollTimeline = null
+        this.plane = null
+        this.shaderMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                iTime: { value: 0.0 },
+                iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        }})
     }
 
 
@@ -28,14 +30,14 @@ export class Disco {
             this.model = gltf.scene
 
             const standardMaterial = new THREE.MeshStandardMaterial({
-                color: new THREE.Color( 0xffffff ),
+                color: new THREE.Color(0xffffff),
                 roughness: 0.1,
                 metalness: 1,
                 flatShading: true
             })
 
             const plasticMaterial = new THREE.MeshStandardMaterial({
-                color: new THREE.Color( 0x212121),
+                color: new THREE.Color(0x212121),
                 roughness: 0.3,
             })
 
@@ -93,112 +95,113 @@ export class Disco {
             if (model) {
                 model.rotation.y += 0.1 // Speed it up slightly
             }
+            if (this.shaderMaterial) {
+                this.shaderMaterial.uniforms.iTime.value += 0.004
+            }
             this.renderer.render(this.scene, this.camera)
         })
     }
 
 
+    createShaderPlane() {
 
-
-
-    /*
-
-    animate() {
-        //Animate on scroll
-        gsap.to(this.discoball.position, {
-            z: 0,
-            y: 0.05
-        })
-        this.scrollTimeline = gsap.timeline({
-            scrollTrigger: {
-                trigger: this.mainContainer,
-                start: "top top",
-                end: "+=800",
-                scrub: 0.5,
-                //markers: true,
+        const vertexShaderSource =
+        `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv; // Pass UVs to fragment shader
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
-        })
-        this.scrollTimeline.to(this.discoball.position, {
-            z: -5,
-            y: 2
-        })
-    }
+        `
 
-    killAnimate() {
-        this.scrollTimeline.scrollTrigger.kill()
-        this.scrollTimeline.kill()
-    }
+        const fragmentShaderSource =
+        `
+            precision highp float;
+            uniform vec2 iResolution;
+            uniform float iTime;
+            varying vec2 vUv; // Use this to center the effect on the plane
 
+            #define time iTime
+            const float PI = 3.1415925358;
 
-    changeThis() {
-        let menuOpen = false
-        let cZ, cY
+            float safety_sin( in float x ) { return sin( mod( x, PI ) ); }
 
-        //Click on Button
-        this.menuButton.addEventListener('click', (e) => {
-
-            if (!menuOpen) {
-
-                cZ = this.discoball.position.z
-                cY = this.discoball.position.y
-
-                console.log(cZ, cY)
-
-                gsap.to(this.discoball.position, {
-                    z: cZ - 1,
-                    y: cY + 0.4,
-                    ease: "power3.inOut",
-                    duration: 0.7
-                })
-                menuOpen = true
-
-            } else if (menuOpen) {
-
-                gsap.to(this.discoball.position, {
-                    y: cY,
-                    ease: "power3.inOut",
-                    duration: 0.7
-                })
-                menuOpen = false
-
+            float rand( vec2 p ) { 
+                return fract( safety_sin( dot(p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 + time * .35 ); 
             }
 
-        }, true)
+            float noise( vec2 x ) {
+                vec2 i = floor(x);
+                vec2 f = fract(x);
+                vec4 h;
+                // Smooth Interpolation
+                f = f * f * ( f * -2.0 + 3.0 );
+                // Four corners in 2D of a tile
+                h.x = rand( i + vec2( 0., 0. ) );
+                h.y = rand( i + vec2( 1., 0. ) );
+                h.z = rand( i + vec2( 0., 1. ) );
+                h.w = rand( i + vec2( 1., 1. ) );
+                // Mix 4 corners percentages
+                return mix( mix( h.x, h.y, f.x ), mix( h.z, h.w, f.x ), f.y );
+            }
+
+            float star_burst( vec2 p ) {
+                float k0 = 2.0; float k1 = 1.0; float k2 = 0.5; float k3 = 12.0;
+                float k4 = 12.0; float k5 = 2.0; float k6 = 5.2; float k7 = 4.0; float k8 = 6.2;
+                
+                float l  = length( p );
+                float l2 = pow( l * k1, k2 );
+                float n0 = noise( vec2( atan(  p.y,  p.x ) * k0, l2 ) * k3 );
+                float n1 = noise( vec2( atan( -p.y, -p.x ) * k0, l2 ) * k3 );
+                float n  = pow( max( n0, n1 ), k4 ) * pow( clamp( 1.0 - l * k5, 0.0, 1.0 ), k6 );
+                n += pow( clamp( 1.0 - ( l * k7 - 0.1 ), 0.0, 1.0 ), k8 );
+                return n;
+            }
 
 
-        this.menuLinks.forEach((link) => {
+
+            void main() {
+                // Use vUv (0.0 to 1.0) instead of gl_FragCoord so it scales with the plane
+                vec2 p = vUv - 0.5; 
+                p.x *= iResolution.x / iResolution.y; // Maintain aspect ratio
+
+                p *= 0.5;
+                
+                float r = star_burst( p * 1.1 );
+                float g = star_burst( p );
+                float b = star_burst( p * 0.9 );
+
+                vec3 starColor = vec3(r, g, b);
+                vec3 col = pow( starColor, vec3( 1.0 / 3.5 ) );
+                float brightness = max(col.r, max(col.g, col.b));
+
+                float margin = 0.2; 
+                vec2 edge = smoothstep(0.0, margin, vUv) * smoothstep(1.0, 1.0 - margin, vUv);
+                float alphaMask = edge.x * edge.y;
+
+                float finalAlpha = brightness * alphaMask;
+                
+                gl_FragColor = vec4(col, finalAlpha);
+            }
+        `
 
 
-            link.addEventListener('click', (e) => {
+       
+        this.shaderMaterial.vertexShader = vertexShaderSource
+        this.shaderMaterial.fragmentShader = fragmentShaderSource
+        this.shaderMaterial.transparent = true // Matches your alpha logic
+        this.shaderMaterial.blending = THREE.AdditiveBlending, 
+        this.shaderMaterial.depthWrite = false
 
-                gsap.to(this.discoball.position, {
-                    z: -5,
-                    y: 2,
-                    ease: "power3.inOut",
-                    duration: 0.7
-                })
-                menuOpen = false
-            })
 
-        })
+        const geometry = new THREE.PlaneGeometry(3, 2.5)
+        const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } )
+        const plane = new THREE.Mesh( geometry, this.shaderMaterial )
+        this.scene.add( plane )
+
 
 
 
     }
-        */
 
 }
-
-
-/*        return new Promise((resolve, reject) => {
-            this.hdrLoader.load(
-                this.HDRILink,
-                (texture) => {
-                    texture.mapping = THREE.EquirectangularReflectionMapping
-                    this.scene.environment = texture
-                    resolve()
-                },
-                undefined, // Progress callback
-                (error) => reject(error) // Error callback
-            )
-        })*/
