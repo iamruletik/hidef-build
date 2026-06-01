@@ -12,6 +12,8 @@ export class Menu {
 
     setup(lenis, menuEvents) {
 
+        gsap.registerPlugin(TextPlugin) 
+
         console.log(menuEvents)
 
         this.menuContainer.classList.remove('w-condition-invisible')
@@ -34,7 +36,25 @@ export class Menu {
             autoAlpha: 1
         })
 
-        //console.log(this.runningLine)
+        this.menuAnimation.to("#menu-icon-line-top", {
+            rotationZ: -30,
+            y: -6,
+            x: 5,
+            duration: 0.3
+        }, "<")
+
+        this.menuAnimation.to("#menu-icon-line-bottom", {
+            rotationZ: 30,
+            y: 6,
+            x: -5,
+            duration: 0.3
+        }, "<")
+
+        this.menuAnimation.to("#menu-button-text", {
+            text: "CLOSE",
+            ease: "none",
+            duration: 0.3
+        }, "<")
 
         if (this.runningLine) {
             this.menuAnimation.to(this.runningLine, {
@@ -52,6 +72,7 @@ export class Menu {
             autoAlpha: 1,
             stagger: 0.2
         }, "<")
+
 
         let menuOpen = false
 

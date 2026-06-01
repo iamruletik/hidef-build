@@ -12,7 +12,7 @@ export class Disco {
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
         this.model = null
         this.hdri = null
-        this.plane = null
+        this.plane = new THREE.Group()
         this.shaderMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 iTime: { value: 0.0 },
@@ -49,6 +49,8 @@ export class Disco {
 
 
             this.scene.add(this.model)
+            this.scene.add(this.plane)
+            this.createShaderPlane()
             this.setupScene()
             this.renderer.render(this.scene, this.camera)
             return this.scene
@@ -188,31 +190,25 @@ export class Disco {
             }
         `
 
-
-
         this.shaderMaterial.vertexShader = vertexShaderSource
         this.shaderMaterial.fragmentShader = fragmentShaderSource
-        this.shaderMaterial.transparent = true // Matches your alpha logic
-        this.shaderMaterial.blending = THREE.AdditiveBlending,
-            this.shaderMaterial.depthWrite = false
+        this.shaderMaterial.transparent = true
+        this.shaderMaterial.blending = THREE.AdditiveBlending
+        this.shaderMaterial.depthWrite = false
 
-
-        const geometry = new THREE.PlaneGeometry(3, 2)
-        const material = new THREE.MeshBasicMaterial({ color: 0xffff00 })
-        const plane = new THREE.Mesh(geometry, this.shaderMaterial)
-        this.scene.add(plane)
-
-
+        let planeGeometry = new THREE.PlaneGeometry(3, 2)
+        let planeMesh = new THREE.Mesh(planeGeometry, this.shaderMaterial)
+        this.plane.add(planeMesh)
     }
 
     scrollHomeAnimation() {
-
+        /*
         gsap.to(this.scene.position, {
             y: 0,
             z: 0,
             duration: 1,
             ease: 'expo.inOut'
-        })
+        }) */
 
         let home = gsap.timeline({
             id: 'homeScrolltrigger',
@@ -231,6 +227,16 @@ export class Disco {
             z: -3.5
         })
 
+        home.to(this.plane.position, {
+            y: 0.3
+        }, "<")
+
+        home.to(this.plane.scale, {
+            y: 1,
+            x: 1,
+            z: 1,
+        }, "<")
+
     }
 
     destroyHomeAnimation() {
@@ -245,6 +251,19 @@ export class Disco {
             y: 1.8,
             z: -3.5
         })
+        gsap.to(this.plane.scale, {
+            y: 1,
+            x: 1,
+            z: 1,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+        gsap.to(this.plane.position, {
+            y: 0.3,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+
     }
 
     animateToMenu(timeline) {
@@ -255,6 +274,18 @@ export class Disco {
             ease: 'expo.inOut',
             duration: 1
         })
+        timeline.to(this.plane.scale, {
+            y: 1.8,
+            x: 1.8,
+            z: 1.8,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+        timeline.to(this.plane.position, {
+            y: 0,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
     }
 
     revertMenuAnimation(timeline) {
@@ -266,6 +297,18 @@ export class Disco {
             y: 1.8,
             z: -3.5
         })
+        gsap.set(this.plane.position, {
+            y: 0.3,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+        gsap.set(this.plane.scale, {
+            y: 1,
+            x: 1,
+            z: 1,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
     }
 
 }

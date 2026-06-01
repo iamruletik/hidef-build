@@ -1,0 +1,5 @@
+#menu-icon-line-top,
+#menu-icon-line-bottom {
+    transform-origin: center;
+    transform-box: fill-box;
+}

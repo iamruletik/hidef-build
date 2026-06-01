@@ -4,6 +4,6 @@
     position: fixed;
     z-index: 999999;
     pointer-events: none;
-    opacity: .03;
+    opacity: .025;
     mix-blend-mode: multiply;
 }

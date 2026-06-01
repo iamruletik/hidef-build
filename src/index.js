@@ -23,11 +23,20 @@ import projectInit from './archive/project'
 import { mainView } from './main/main'
 import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
+import { AboutPage } from './about/about'
 import Lenis from 'lenis'
+
+
+//Footer Color Change
+function setFooterColor(color) {
+    document.documentElement.style.setProperty('--footer-color', color)
+}
+
+
 
 //INIT LENIS
 // Initialize a new Lenis instance for smooth scrolling
-const lenis = new Lenis({ lerp: 0.1 })
+const lenis = new Lenis({ lerp: 0.075 })
 
 // Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 lenis.on('scroll', ScrollTrigger.update)
@@ -106,10 +115,10 @@ barba.init({
         name: 'default-transition',
         sync: false,
         before(data) { console.log("BEFORE") },
-        beforeLeave(data) { 
+        beforeLeave(data) {
             console.log("BEFORE LEAVE")
             console.log(data)
-         },
+        },
         leave(data) { console.log("LEAVE") },
         afterLeave(data) { console.log("AFTER LEAVE") },
 
@@ -142,10 +151,12 @@ barba.init({
             console.log("Barba Main")
             home = new mainView()
             home.setup()
+            setFooterColor("#FF383C")
         },
         afterEnter() {
             home.run()
             discoball.scrollHomeAnimation()
+            console.log("Barba Main After Enter")
         },
         beforeLeave() {
             home = null
@@ -158,6 +169,7 @@ barba.init({
             console.log("Barba Roster")
             rosterInit()
             discoball.animateToHeader()
+            setFooterColor("#F4F4ED")
         }
     }, {
         //ARCHIVE PAGE
@@ -166,6 +178,7 @@ barba.init({
             console.log("Barba Archive")
             archiveInit()
             discoball.animateToHeader()
+            setFooterColor("#A7CEED")
         }
     }, {
         //PROJECT PAGE
@@ -174,13 +187,19 @@ barba.init({
             console.log("Barba Project")
             projectInit()
             discoball.animateToHeader()
+            setFooterColor("#A7CEED")
         }
     }, {
         //ABOUT PAGE
         namespace: 'about',
         beforeEnter(data) {
             console.log("Barba About")
-           discoball.animateToHeader()
+            discoball.animateToHeader()
+            setFooterColor("#FCB8FA")
+        },
+        afterEnter(data) {
+            let about = new AboutPage()
+            about.setup()
         }
     }, {
         //SERVICES PAGE
@@ -188,6 +207,7 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Services")
             discoball.animateToHeader()
+            setFooterColor("#FF383C")
         }
     }, {
         //ARTIST PAGE
@@ -195,6 +215,7 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba ARTIST")
             discoball.animateToHeader()
+            setFooterColor("#FF383C")
         }
     }]
 })
@@ -251,7 +272,6 @@ async function downloadDiscoModel(url) {
             const scene = await discoball.loadModel(data)
             preloader.finish()
             discoball.run(scene.children[0])
-            discoball.createShaderPlane()
             return scene
             // ...do something with the response
         } else {
