@@ -18,12 +18,12 @@ import createNoise from './noise/noise'
 import headerInit from './header/header'
 import { Menu } from './menu/menu'
 import rosterInit from './roster/roster'
-import archiveInit from './archive/archive'
 import projectInit from './archive/project'
 import { mainView } from './main/main'
 import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
 import { AboutPage } from './about/about'
+import { ArchivePage } from './archive/archive'
 import Lenis from 'lenis'
 
 
@@ -149,9 +149,11 @@ barba.init({
         namespace: 'main',
         beforeEnter(data) {
             console.log("Barba Main")
+            setFooterColor("#FF383C")
+
             home = new mainView()
             home.setup()
-            setFooterColor("#FF383C")
+            
         },
         afterEnter() {
             home.run()
@@ -167,35 +169,48 @@ barba.init({
         namespace: 'roster',
         beforeEnter(data) {
             console.log("Barba Roster")
-            rosterInit()
-            discoball.animateToHeader()
             setFooterColor("#F4F4ED")
+            discoball.animateToHeader()
+
+
+
+            rosterInit()
+
         }
     }, {
         //ARCHIVE PAGE
         namespace: 'archive',
         beforeEnter(data) {
             console.log("Barba Archive")
-            archiveInit()
-            discoball.animateToHeader()
             setFooterColor("#A7CEED")
+            discoball.animateToHeader()
+
+        },
+        afterEnter(data) {
+            //console.log(document.querySelector('.archive-content-projects-list'))
+            let archive = new ArchivePage(data.next.container)
+            archive.setup(data.next.container)
         }
     }, {
         //PROJECT PAGE
         namespace: 'project',
         beforeEnter(data) {
             console.log("Barba Project")
-            projectInit()
-            discoball.animateToHeader()
             setFooterColor("#A7CEED")
+            discoball.animateToHeader()
+
+
+            projectInit()
+
         }
     }, {
         //ABOUT PAGE
         namespace: 'about',
         beforeEnter(data) {
             console.log("Barba About")
-            discoball.animateToHeader()
             setFooterColor("#FCB8FA")
+            discoball.animateToHeader()
+
         },
         afterEnter(data) {
             let about = new AboutPage()
@@ -206,16 +221,18 @@ barba.init({
         namespace: 'services',
         beforeEnter(data) {
             console.log("Barba Services")
-            discoball.animateToHeader()
             setFooterColor("#FF383C")
+            discoball.animateToHeader()
+
         }
     }, {
         //ARTIST PAGE
         namespace: 'artist',
         beforeEnter(data) {
             console.log("Barba ARTIST")
-            discoball.animateToHeader()
             setFooterColor("#FF383C")
+            discoball.animateToHeader()
+
         }
     }]
 })

@@ -70,10 +70,7 @@
 
 
 
-#dj-music-direction,
-#lightning-fx,
-#sound-systems,
-#mc-hosting
+.sticky_container
  {
   filter: url('#goo');
 }
