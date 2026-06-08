@@ -17,7 +17,8 @@ export class Footer {
                 start: 'bottom bottom',
                 end: 'bottom bottom',
                 //markers: true,
-                scrub: true
+                scrub: true,
+                refreshPriority: 1
             },
             height: '100%',
             ease: "none"

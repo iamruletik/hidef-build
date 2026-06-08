@@ -9,6 +9,7 @@ import './default_transition.css'
 import './header/header.css'
 import './roster/roster.css'
 import './archive/archive.css'
+import './archive/project.css'
 import './services/services.css'
 import './about/about.css'
 import './noise/noise.css'
@@ -24,6 +25,8 @@ import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
 import { AboutPage } from './about/about'
 import { ArchivePage } from './archive/archive'
+import { ProjectPage } from './archive/project'
+import { ServicePage } from './services/services'
 import Lenis from 'lenis'
 
 
@@ -200,7 +203,8 @@ barba.init({
             discoball.animateToHeader()
 
 
-            projectInit()
+            let project = new ProjectPage(data.next.container)
+            project.setup()
 
         }
     }, {
@@ -223,6 +227,10 @@ barba.init({
             console.log("Barba Services")
             setFooterColor("#FF383C")
             discoball.animateToHeader()
+
+            let services = new ServicePage(data.next.container)
+            services.setup()
+            footer.update()
 
         }
     }, {

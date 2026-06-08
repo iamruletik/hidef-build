@@ -1,3 +1,7 @@
+body {
+  overflow-x: hidden;
+}
+
 .hide {
   opacity: 1 !important;
 }
@@ -70,8 +74,7 @@
 
 
 
-.sticky_container
- {
+.sticky_container {
   filter: url('#goo');
 }
 
@@ -90,7 +93,7 @@
   clip-path: polygon(0 0, 90% 0, 100% 100%, 0 100%);
   background: var(--gray-1);
   border: 1px solid var(--gray-1);
-} 
+}
 
 #mc-hosting:before {
   content: "02 MC & HOSTING";
@@ -108,7 +111,7 @@
   clip-path: polygon(0 0, 90% 0, 100% 100%, 0 100%);
   background: var(--pink);
   border: 1px solid var(--pink);
-} 
+}
 
 
 #sound-systems:before {
@@ -127,7 +130,7 @@
   clip-path: polygon(0 0, 90% 0, 100% 100%, 0 100%);
   background: var(--blue);
   border: 1px solid var(--blue);
-} 
+}
 
 
 #lightning-fx:before {
@@ -147,58 +150,60 @@
   background: var(--black-2);
   border: 1px solid var(--black-2);
   color: var(--gray-1);
-} 
+}
 
 /*3D Cylindrical Slider*/
 
 .event_archive-banner {
-	position: relative;
-	perspective: 75vw;
-	width: 100%;
-	height: 100vh;
-	transform-style: preserve-3d;
+  position: relative;
+  perspective: 75vw;
+  width: 100%;
+  height: 100vh;
+  transform-style: preserve-3d;
 }
 
 .event_archive-slider {
-	--quantity: 9;
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	transform-style: preserve-3d;
-	transform-origin: center;
+  --quantity: 9;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform-origin: center;
   /*animation: simpleRun 200s linear infinite;*/
 }
 
 @keyframes autoRun {
-	0% {
-		transform: rotateX(-35deg) rotateZ(-15deg) rotateY(0deg);
-	}
-	100% {
-		transform: rotateX(-35deg) rotateZ(-15deg) rotateY(360deg);
-	}
+  0% {
+    transform: rotateX(-35deg) rotateZ(-15deg) rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateX(-35deg) rotateZ(-15deg) rotateY(360deg);
+  }
 }
 
 @keyframes simpleRun {
-	0% {
-		transform: rotateY(0deg);
-	}
-	100% {
-		transform: rotateY(360deg);
-	}
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateY(360deg);
+  }
 }
 
 
 
 .event_archive-item img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .event_archive-content_text {
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%) translateZ(0vw);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translateZ(0vw);
 }
 
 
@@ -235,18 +240,38 @@
 }
 
 .event_archive-item:nth-child(9) {
-  --position: 9 ;
+  --position: 9;
 }
 
 .event_archive-item {
   --zTranslation: 15vw;
-	position: absolute;
-	top: calc(50% - 6vw);
-	left: calc(50% - 5vw);
-	width: 10vw;
-	height: 12vw;
-	backface-visibility: visible;
-	border-radius: 0.75rem;
-	overflow: hidden;
-	transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation));
+  position: absolute;
+  top: calc(50% - 6vw);
+  left: calc(50% - 5vw);
+  width: 10vw;
+  height: 12vw;
+  backface-visibility: visible;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation));
+}
+
+.default-button {
+  filter: url(#goo);
+}
+
+.default-button .text-block {  
+  filter: blur(0.5px);
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 1px);
+}
+
+.default-button .fake-button {
+    top: 0%;
+  transition: top 0.4s cubic-bezier(0, .68, .49, 1);
+}
+
+.default-button:hover .fake-button {
+  top: -100%;
+  transition: top 0.4s cubic-bezier(0, .68, .49, 1);
 }

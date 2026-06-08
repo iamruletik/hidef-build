@@ -17,10 +17,10 @@
   }
   
   
-  .about-content-headline-description-category div::before {
+  .about-headline-category div::before {
     content: "(0" counter(category) ") ";
   }
 
-  .about-content-headline-description-category:nth-child(n+10) > .div::before {
+  .about-headline-category:nth-child(n+10) > .div::before {
     content: "(" counter(category) ") ";
   }
