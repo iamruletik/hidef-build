@@ -156,7 +156,7 @@ barba.init({
 
             home = new mainView()
             home.setup()
-            
+
         },
         afterEnter() {
             home.run()
@@ -202,10 +202,11 @@ barba.init({
             setFooterColor("#A7CEED")
             discoball.animateToHeader()
 
-
+        },
+        afterEnter(data) {
             let project = new ProjectPage(data.next.container)
             project.setup()
-
+            project.getAllAltTexts(data.next.container)
         }
     }, {
         //ABOUT PAGE

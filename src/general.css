@@ -275,3 +275,25 @@ body {
   top: -100%;
   transition: top 0.4s cubic-bezier(0, .68, .49, 1);
 }
+
+
+
+
+.link-element:visited {
+  color: inherit;
+}
+
+.link-element {
+  opacity: 1;
+    text-decoration: none;
+    font-variation-settings: "wght" 300, "wdth" 75;
+    transition: opacity 0.4s cubic-bezier(0, .68, .49, 1),
+        font-variation-settings 0.4s cubic-bezier(0, .68, .49, 1);
+}
+
+.link-element:hover {
+    opacity: 0.5;
+    font-variation-settings: "wght" 300, "wdth" 100;
+    transition: opacity 0.4s cubic-bezier(0, .68, .49, 1),
+        font-variation-settings 0.4s cubic-bezier(0, .68, .49, 1);
+}
