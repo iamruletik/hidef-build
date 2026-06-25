@@ -1,6 +1,6 @@
 import barba from '@barba/core'
 import discomodel from './glb/discoball_compressed.glb'
-import hdri from './glb/hdri.hdr'
+import hdri from './glb/output_lowres.hdr'
 import './fluid.css'
 import './general.css'
 import './preloader/preloader.css'
