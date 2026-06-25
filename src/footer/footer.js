@@ -1,12 +1,12 @@
 export class Footer {
 
     constructor() {
+        this.footer = document.querySelector('.footer-wrapper')
         this.footerLogoInstance = document.querySelector('.footer-logo-instance-stretched')
         this.footerTrigger = document.querySelector('.footer-content-grid')
-        this.footerEmail = document.querySelector('.footer-content-email-link')
-        this.smallLinks = document.querySelectorAll('.footer-link')
         this.footerEndTrigger = document.querySelector('.footer-content-container')
         this.footerTimeline = gsap.timeline()
+        this.footerDummy = document.querySelector('.footer-dummy')
     }
 
     setup() {
@@ -24,34 +24,56 @@ export class Footer {
             ease: "none"
         })
 
+        if (this.footerDummy) { this.addLinksToFooter() }
 
-            this.footerEmail.addEventListener('mouseover', (e) => {
-                gsap.to(this.footerEmail, {
-                    filter: "blur(3px)",
-                })
-            })
+    }
 
-            this.footerEmail.addEventListener('mouseout', (e) => {
-                gsap.to(this.footerEmail, {
-                    filter: "blur(0px)",
-                })
-            })
+    addLinksToFooter() {
 
-        this.smallLinks.forEach((link) => {
+        let itemsLeft = this.footerDummy.childNodes[0]
+        let itemsRight = this.footerDummy.childNodes[1]
 
-            link.addEventListener('mouseover', (e) => {
-                gsap.to(link, {
-                    filter: "blur(1.5px)",
-                })
-            })
+        let columnLeft = this.footer.querySelector('#footer-links-left-column')
+        let columnRight = this.footer.querySelector('#footer-links-right-column')
 
-            link.addEventListener('mouseout', (e) => {
-                gsap.to(link, {
-                    filter: "blur(0px)",
-                })
-            })
+
+
+        itemsRight.querySelectorAll('[data-link-name]').forEach((link) => {
+
+            let name = link.dataset.linkName
+            let url = link.dataset.linkUrl
+
+            let element = document.createElement('a')
+            element.classList.add('link-element')
+            element.href = url
+            element.innerHTML = `<div>${name}</div`
+
+
+            columnRight.append(element)
 
         })
+
+
+        itemsLeft.querySelectorAll('[data-link-name]').forEach((link) => {
+
+            let name = link.dataset.linkName
+            let url = link.dataset.linkUrl
+
+            let element = document.createElement('a')
+            element.classList.add('link-element')
+            element.href = url
+            element.innerHTML = `<div>${name}</div`
+
+
+            columnLeft.append(element)
+
+        })
+
+
+
+
+
+
     }
 
     update() {

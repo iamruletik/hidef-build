@@ -12,7 +12,7 @@ export class Menu {
 
     setup(lenis, menuEvents) {
 
-        gsap.registerPlugin(TextPlugin) 
+        gsap.registerPlugin(TextPlugin)
 
         console.log(menuEvents)
 
@@ -35,20 +35,6 @@ export class Menu {
         this.menuAnimation.to(this.menuContainer, {
             autoAlpha: 1
         })
-
-        this.menuAnimation.to("#menu-icon-line-top", {
-            rotationZ: -30,
-            y: -6,
-            x: 5,
-            duration: 0.3
-        }, "<")
-
-        this.menuAnimation.to("#menu-icon-line-bottom", {
-            rotationZ: 30,
-            y: 6,
-            x: -5,
-            duration: 0.3
-        }, "<")
 
         this.menuAnimation.to("#menu-button-text", {
             text: "CLOSE",

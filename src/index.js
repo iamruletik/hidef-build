@@ -1,5 +1,5 @@
 import barba from '@barba/core'
-import discomodel from './glb/discoball.glb'
+import discomodel from './glb/discoball_compressed.glb'
 import hdri from './glb/hdri.hdr'
 import './fluid.css'
 import './general.css'
@@ -14,20 +14,23 @@ import './services/services.css'
 import './about/about.css'
 import './noise/noise.css'
 import './menu/menu.css'
+import Lenis from 'lenis'
 import { Preloader } from './preloader/preloader'
-import createNoise from './noise/noise'
-import headerInit from './header/header'
 import { Menu } from './menu/menu'
-import rosterInit from './roster/roster'
-import projectInit from './archive/project'
-import { mainView } from './main/main'
-import { Disco } from './main/discoball'
-import { Footer } from './footer/footer'
 import { AboutPage } from './about/about'
 import { ArchivePage } from './archive/archive'
 import { ProjectPage } from './archive/project'
 import { ServicePage } from './services/services'
-import Lenis from 'lenis'
+import { RosterPage } from './roster/roster'
+import { ArtistPage } from './roster/artist'
+import { RosterToArtistTransition } from './roster/inTransition'
+import { ArtistToRosterTransition } from './roster/outTransition'
+import createNoise from './noise/noise'
+import headerInit from './header/header'
+import projectInit from './archive/project'
+import { mainView } from './main/main'
+import { Disco } from './main/discoball'
+import { Footer } from './footer/footer'
 
 
 //Footer Color Change
@@ -112,40 +115,89 @@ let home
 
 //Transitions Setup
 barba.init({
-    prevent: null,
-    preventRunning: false,
-    transitions: [{
-        name: 'default-transition',
-        sync: false,
-        before(data) { console.log("BEFORE") },
-        beforeLeave(data) {
-            console.log("BEFORE LEAVE")
-            console.log(data)
-        },
-        leave(data) { console.log("LEAVE") },
-        afterLeave(data) { console.log("AFTER LEAVE") },
-
-        beforeEnter: (data) => {
-            return new Promise(resolve => {
-                console.log("BEFORE ENTER")
-                //Get name of the nex page
-                let text = document.querySelector(".transition-container-content-text")
-                text.innerText = data.next.namespace.toUpperCase()
-                leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
-            })
-        },
-
-        enter(data) { console.log("ENTER") },
-        afterEnter(data) { console.log("AFTER ENTER") },
-
-        after: (data) => {
-            return new Promise(resolve => {
-                console.log("ENTER")
-                enterAnimation(data.current.container, defaultTransititonContainer, resolve)
-                footer.update()
-            })
+    prevent: ({ el, event, href }) => {
+        // Check if the clicked link's URL matches the current browser URL
+        if (href === window.location.href) {
+            event.preventDefault(); // Stop the native browser reload
+            return true;            // Tells Barba to completely ignore this click
         }
-    }],
+    },
+    preventRunning: true,
+    transitions: [
+        {
+            name: 'roster-to-artist-transition',
+            from: {
+                namespace: ['roster']
+            },
+            to: {
+                namespace: ['artist']
+            },
+            leave(data) {
+                console.log("LEAVING ROSTER")
+            },
+            after(data) {
+                console.log("ENTERING ARTIST")
+                let transition = new RosterToArtistTransition(data)
+                transition.animate()
+
+            }
+        },
+        {
+            name: 'artist-to-roster-transition',
+            from: {
+                namespace: ['artist']
+            },
+            to: {
+                namespace: ['roster']
+            },
+            leave(data) {
+                console.log("LEAVING ARTIST")
+            },
+            after(data) {
+                console.log("ENTERING ROSTER")
+                let transition = new ArtistToRosterTransition(data)
+                transition.animate()
+
+            }
+        },
+        {
+            name: 'default-transition',
+            sync: false,
+            before(data) { console.log("BEFORE") },
+            beforeLeave(data) {
+                console.log("BEFORE LEAVE")
+                console.log(data)
+            },
+            leave(data) { console.log("LEAVE") },
+            afterLeave(data) { console.log("AFTER LEAVE") },
+
+            beforeEnter: (data) => {
+                return new Promise(resolve => {
+                    console.log("BEFORE ENTER")
+                    //Get name of the nex page
+                    let text = document.querySelector(".transition-container-content-text")
+                    text.innerText = data.next.namespace.toUpperCase()
+                    leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
+                })
+            },
+
+            enter(data) { console.log("ENTER") },
+            afterEnter(data) { console.log("AFTER ENTER") },
+
+            after: (data) => {
+                return new Promise(resolve => {
+                    console.log("ENTER")
+
+                    //Check if Roster Slider still exist 
+                    let rosterSlider = document.querySelector('.roster-floating-image-wrapper')
+
+                    //if (rosterSlider) { rosterSlider.remove() }
+
+                    enterAnimation(data.current.container, defaultTransititonContainer, resolve)
+                    footer.update()
+                })
+            }
+        }],
 
     views: [{
         //MAIN PAGE
@@ -172,13 +224,12 @@ barba.init({
         namespace: 'roster',
         beforeEnter(data) {
             console.log("Barba Roster")
-            setFooterColor("#F4F4ED")
+            setFooterColor("#FF383C")
             discoball.animateToHeader()
-
-
-
-            rosterInit()
-
+        },
+        afterEnter(data) {
+            let roster = new RosterPage(data.next.container)
+            roster.setup()
         }
     }, {
         //ARCHIVE PAGE
@@ -242,6 +293,10 @@ barba.init({
             setFooterColor("#FF383C")
             discoball.animateToHeader()
 
+        },
+        afterEnter(data) {
+            let artist = new ArtistPage(data.next.container)
+            artist.setup()
         }
     }]
 })

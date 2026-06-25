@@ -3,22 +3,82 @@
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 99;
+    pointer-events: none;
+    width: 100vw;
+    height: 100vh;
+    position: absolute;
+    overflow: hidden;
   }
 
   .roster-floating-image {
-    right: 15%;
-    top: 20%;
+    opacity: 0;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
   }
 
-/*Counting Roster List Items*/
+  .roster-floating-image-container {
+    overflow: hidden;
+    width: 50vw;
+    height: 100vh;
+    position: absolute;
+    /*background-color: #00000020;*/
+    pointer-events: all;
+    transform: translateX(50vw);
+    transform-origin: top left;
+    will-change: width, height, transform !important; 
+  }
+
+  /*Counting Roster List Items*/
   .roster-list-table-content-item-number::after {
     content: "00" counter(rosterlist);
   }
 
-  .roster-list-table-content-item:nth-child(n+10) > .roster-list-table-content-item-number::after {
+  .roster-list-table-content-item:nth-child(n+10)>.roster-list-table-content-item-number::after {
     content: "0" counter(rosterlist);
   }
 
-  .roster-list-table-content-item:nth-child(n+100) > .roster-list-table-content-item-number::after {
+  .roster-list-table-content-item:nth-child(n+100)>.roster-list-table-content-item-number::after {
     content: counter(rosterlist);
+  }
+
+
+  .slider-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+
+  .slider-wrapper .swiper {
+    width: 100%;
+    height: 100%;
+  }
+
+  .swiper-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .artist-img-pagination {
+    opacity: 0;
+  }
+
+
+  .artist-specialty div::after {
+    content: ",";
+    padding-left: 0.25rem;
+  }
+
+   .artist-specialty:nth-last-child(1) div::after {
+    content: "";
+    padding-left: 0rem;
+  }
+
+
+  [data-slider-state="active"] {
+    opacity: 1 !important;
   }

@@ -2,6 +2,7 @@ import barba from '@barba/core'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 
 export class Disco {
     constructor() {
@@ -25,16 +26,21 @@ export class Disco {
     async loadModel(contents) {
 
         const loader = new GLTFLoader()
+        const draco = new DRACOLoader()
+        draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+        loader.setDRACOLoader(draco)
 
         try {
-            const gltf = await loader.parseAsync(contents)
+            const gltf = await loader.parseAsync(contents, '')
             this.model = gltf.scene
+            draco.dispose()
+            
 
             const standardMaterial = new THREE.MeshStandardMaterial({
                 color: new THREE.Color(0xffffff),
                 roughness: 0.1,
                 metalness: 1,
-                flatShading: true
+                //flatShading: true
             })
 
             const plasticMaterial = new THREE.MeshStandardMaterial({
@@ -57,6 +63,7 @@ export class Disco {
 
         } catch (error) {
             console.error('Error loading GLTF:', error)
+            throw error
         }
 
     }
@@ -202,8 +209,8 @@ export class Disco {
     }
 
     scrollHomeAnimation() {
-        /*
-        gsap.to(this.scene.position, {
+        
+        /*gsap.to(this.scene.position, {
             y: 0,
             z: 0,
             duration: 1,

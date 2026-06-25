@@ -2,7 +2,8 @@ export class mainView {
 
     constructor() {
         this.runningLineTimeline = gsap.timeline().pause()
-        this.runningLine = document.querySelectorAll('.running_line_svg')
+        this.runningLineWrapper = document.querySelector('.running_line')
+        this.runningLine = document.querySelectorAll('.running_line_container')
         this.eventCylinderItems = document.querySelectorAll('.event_archive-item')
         this.eventSection = document.querySelector(".event_archive-section")
         this.eventBanner = document.querySelector('.event_archive-banner')
@@ -20,10 +21,16 @@ export class mainView {
 
     setup() {
 
+        let style = window.getComputedStyle(this.runningLineWrapper)
+        let gap = parseFloat(style.getPropertyValue('gap'))
+        //console.log(gap)
+        let xMov = this.runningLine[0].offsetWidth + gap
+        //console.log(xMov)
+
         this.runningLineTimeline.to(this.runningLine, {
-            xPercent: -100,
+            x: -xMov,
             ease: "none",
-            duration: 50,
+            duration: 40,
             repeat: -1
         })
 
