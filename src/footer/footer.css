@@ -1,0 +1,30 @@
+.air-datepicker {
+    --adp-font-family: Martian Mono, Arial, sans-serif;
+    --adp-font-size: 0.875rem;
+    font-variation-settings: "wght" 250, "wdth" 75;
+    text-transform: uppercase;
+
+    --adp-color: var(--background-black);
+    --adp-color-secondary: var(--gray-3);
+    --adp-color-current-date: var(--red);
+    --adp-color-disabled: var(--gray-1);
+
+    --adp-accent-color: var(--red);
+    --adp-cell-background-color-hover: #cccccc;
+    --adp-nav-background-color-hover: #cccccc;
+    --adp-nav-background-color-active: #cccccc;
+    --adp-nav-color-secondary: var(--red);
+    --adp-background-color-selected-hover: var(--red);
+    --adp-cell-background-color-selected: var(--red);
+
+    --adp-day-name-color: var(--gray-3);
+    --adp-nav-color: var(--background-black);
+    --adp-nav-arrow-color: var(--gray-3);
+
+
+    --adp-background-color: var(--gray-2);
+    --adp-cell-background-color-selected:  var(--red);
+    --adp-cell-background-color-selected-hover: var(--red);
+    --adp-background-color-selected-hover: var(--red);
+    --adp-background-color-selected-focused: var(--red);
+}

@@ -162,37 +162,25 @@ body {
   transform-style: preserve-3d;
 }
 
+/* NEW wrapper — must fill the banner exactly like the slider did */
+.event_archive-slider-wrapper {
+  position: absolute;
+  inset: 0;
+  /* same box as the old slider */
+  transform-style: preserve-3d;
+  transform-origin: center;
+}
+
 .event_archive-slider {
   --quantity: 9;
   position: absolute;
   width: 100%;
   height: 100%;
+  /* fills .slider-tilt, which fills the banner */
   transform-style: preserve-3d;
   transform-origin: center;
-  /*animation: simpleRun 200s linear infinite;*/
+  pointer-events: none;
 }
-
-@keyframes autoRun {
-  0% {
-    transform: rotateX(-35deg) rotateZ(-15deg) rotateY(0deg);
-  }
-
-  100% {
-    transform: rotateX(-35deg) rotateZ(-15deg) rotateY(360deg);
-  }
-}
-
-@keyframes simpleRun {
-  0% {
-    transform: rotateY(0deg);
-  }
-
-  100% {
-    transform: rotateY(360deg);
-  }
-}
-
-
 
 .event_archive-item img {
   width: 100%;
@@ -200,6 +188,8 @@ body {
   object-fit: cover;
 }
 
+
+/* text unchanged, still a child of .event_archive-banner, centers on it */
 .event_archive-content_text {
   left: 50%;
   top: 50%;
@@ -256,6 +246,41 @@ body {
   transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation));
 }
 
+/* Projects Slider */
+.slider_cards {
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+
+.projects-slider-cards-item {
+  position: absolute;
+  top: 0;
+  display: flex;
+}
+
+.projects_container-description {
+  position: relative;
+}
+
+.desc-block {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  padding-left: 12rem;
+  padding-right: 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.desc-block .h3 {
+  overflow: hidden;
+}
+
 .default-button {
   filter: url(#goo);
 }
@@ -276,17 +301,8 @@ body {
   transition: top 0.4s cubic-bezier(0, .68, .49, 1);
 }
 
-
-a {
-  color: inherit !important;
-}
-
-
-a:visited {
-  color: inherit !important;
-}
-
 .link-element {
+  color: inherit !important;
   text-transform: uppercase;
   opacity: 1;
   text-decoration: none;
@@ -295,9 +311,55 @@ a:visited {
     font-variation-settings 0.4s cubic-bezier(0, .68, .49, 1);
 }
 
+.link-elemen:visited {
+  color: inherit !important;
+}
+
 .link-element:hover {
   opacity: 0.5;
   font-variation-settings: "wght" 300, "wdth" 100;
   transition: opacity 0.4s cubic-bezier(0, .68, .49, 1),
     font-variation-settings 0.4s cubic-bezier(0, .68, .49, 1);
+}
+
+
+.arrow-right:hover svg{
+  transform: translateX(0.25rem);
+  transition: transform 0.3s ease-in-out;
+}
+
+.arrow-left:hover svg{
+  transform: translateX(-0.25rem);
+  transition: transform 0.3s ease-in-out;
+}
+
+.arrow-left svg{
+  transition: transform 0.3s ease-in-out;
+}
+
+.arrow-right svg{
+  transition: transform 0.3s ease-in-out;
+}
+
+.arrow-left,
+.arrow-right {
+  position: relative;
+}
+.arrow-left::before,
+.arrow-right::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999rem;
+  background-color: transparent;
+  transition: background-color 0.3s ease-in-out;
+}
+
+.arrow-right:hover::before,
+.arrow-left:hover::before {
+  background-color: #ffffff10;
 }

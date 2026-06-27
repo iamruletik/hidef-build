@@ -1,3 +1,8 @@
+import AirDatepicker from 'air-datepicker'
+import localeEn from 'air-datepicker/locale/en'
+import 'air-datepicker/air-datepicker.css'
+
+
 export class Footer {
 
     constructor() {
@@ -26,12 +31,17 @@ export class Footer {
 
         if (this.footerDummy) { this.addLinksToFooter() }
 
+        let datepicker = new AirDatepicker('#event-date', {
+            locale: localeEn,
+            dateFormat: 'MM/dd/yyyy',
+        })
+
     }
 
     addLinksToFooter() {
 
-        let itemsLeft = this.footerDummy.childNodes[0]
-        let itemsRight = this.footerDummy.childNodes[1]
+        let itemsLeft = this.footerDummy.children[0]
+        let itemsRight = this.footerDummy.children[1]
 
         let columnLeft = this.footer.querySelector('#footer-links-left-column')
         let columnRight = this.footer.querySelector('#footer-links-right-column')
@@ -62,7 +72,7 @@ export class Footer {
             let element = document.createElement('a')
             element.classList.add('link-element')
             element.href = url
-            element.innerHTML = `<div>${name}</div`
+            element.innerHTML = `<div>${name}</div>`
 
 
             columnLeft.append(element)

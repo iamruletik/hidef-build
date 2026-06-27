@@ -102,9 +102,11 @@ export class Preloader {
     }, "<")
 
     let runningLine = document.querySelector('.running_line')
-    let chars = runningLine.querySelectorAll('.char-svg')
 
     if (runningLine) {
+
+      let chars = runningLine.querySelectorAll('.char-svg')
+
       this.pt.from(chars, {
         delay: 0.3,
         yPercent: 100,

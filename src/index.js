@@ -28,9 +28,10 @@ import { ArtistToRosterTransition } from './roster/outTransition'
 import createNoise from './noise/noise'
 import headerInit from './header/header'
 import projectInit from './archive/project'
-import { mainView } from './main/main'
+import { MainPage } from './main/main'
 import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
+import './footer/footer.css'    
 
 
 //Footer Color Change
@@ -39,21 +40,12 @@ function setFooterColor(color) {
 }
 
 
-
-//INIT LENIS
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis({ lerp: 0.075 })
 
 // Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 lenis.on('scroll', ScrollTrigger.update)
-
-// Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
-// This ensures Lenis's smooth scroll animation updates on each GSAP tick
-gsap.ticker.add((time) => {
-    lenis.raf(time * 1000) // Convert time from seconds to milliseconds
-})
-
-// Disable lag smoothing in GSAP to prevent any delay in scroll animations
+gsap.ticker.add((time) => { lenis.raf(time * 1000)  })
 gsap.ticker.lagSmoothing(0)
 
 
@@ -206,7 +198,7 @@ barba.init({
             console.log("Barba Main")
             setFooterColor("#FF383C")
 
-            home = new mainView()
+            home = new MainPage(data.next.container)
             home.setup()
 
         },
@@ -329,7 +321,7 @@ function createTransitionContainer() {
 function leaveAnimation(barbaContainer, transitionContainer, resolve) {
     let leave = gsap.timeline()
     leave.set(transitionContainer, { yPercent: 100 })
-    leave.to(barbaContainer, { y: 100, autoAlpha: 0 })
+    //leave.to(barbaContainer, { y: 100, autoAlpha: 0 })
     leave.to(transitionContainer, { yPercent: 0, ease: "expo.inOut", onComplete: () => { resolve() } })
 }
 
