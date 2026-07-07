@@ -42,14 +42,12 @@ export class Preloader {
 
   }
 
-  finish() {
+  finish(onReveal) {
 
     this.pt.to(".preloader-color", {
       yPercent: 100,
       duration: 0.5
     })
-
-
 
     this.pt.to(".first-preloader-image", {
       delay: 0.25,
@@ -98,6 +96,7 @@ export class Preloader {
       },
       duration: 1,
       ease: 'expo.inOut',
+      onStart: () => { if (onReveal) onReveal() },
       onComplete: () => this.preloaderWrapper.remove(),
     }, "<")
 

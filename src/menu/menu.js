@@ -2,15 +2,41 @@ export class Menu {
 
     constructor() {
         this.menuContainer = document.querySelector('.menu-wrapper')
-        this.menuLinks = document.querySelectorAll('.menu-large-link')
-        this.smallLinks = document.querySelectorAll('.menu-small-link')
+        this.menuLinks = this.menuContainer.querySelectorAll('.menu-large-link')
+        this.smallLinks = null
         this.menuButton = document.querySelector('.menu_button')
-        this.runningLine = document.querySelector('.running_line')
         this.menuAnimation = gsap.timeline().pause()
+        this.menuDummy = document.querySelector('.menu-dummy')
+    }
+
+    getLinks() {
+
+        let items = this.menuDummy.querySelectorAll(".menu-dummy-link")
+        let linksContainer = this.menuContainer.querySelector(".menu-content-contacts-socials")
+
+        items.forEach((link) => {
+
+            let name = link.dataset.linkName
+            let url = link.dataset.linkUrl
+
+            let element = document.createElement('a')
+            element.classList.add('link-element')
+            element.classList.add('menu-small-link')
+            element.href = url
+            element.innerHTML = `<div>${name}</div`
+
+
+            linksContainer.append(element)
+
+        })
 
     }
 
     setup(lenis, menuEvents) {
+
+        this.getLinks()
+
+        this.smallLinks = this.menuContainer.querySelectorAll('.menu-small-link')
 
         gsap.registerPlugin(TextPlugin)
 
@@ -42,17 +68,12 @@ export class Menu {
             duration: 0.3
         }, "<")
 
-        if (this.runningLine) {
-            this.menuAnimation.to(this.runningLine, {
-                autoAlpha: 0
-            }, "<")
-        }
-
         this.menuAnimation.to(this.menuLinks, {
             filter: "blur(0px)",
             autoAlpha: 1,
             stagger: 0.1
-        })
+        }, "<")
+
         this.menuAnimation.to(this.smallLinks, {
             yPercent: 0,
             autoAlpha: 1,
@@ -101,6 +122,8 @@ export class Menu {
                 this.menuAnimation.reverse()
                 menuOpen = false
                 lenis.start()
+                //Only revert the scene here for same-page links; barba handles the rest
+                if (link.href === window.location.href) document.dispatchEvent(menuEvents.closeMenu)
             })
 
         })
@@ -124,6 +147,8 @@ export class Menu {
                 this.menuAnimation.reverse()
                 menuOpen = false
                 lenis.start()
+                //Only revert the scene here for same-page links; barba handles the rest
+                if (link.href === window.location.href) document.dispatchEvent(menuEvents.closeMenu)
             })
 
         })

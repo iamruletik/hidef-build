@@ -73,8 +73,8 @@ export class MainPage {
 
         //Change Layout for CSS working properly
         this.eventSliderWrapper.prepend(this.eventSlider)
-        //this.eventSliderWrapper.remove()
 
+        this.createItemFog()
 
         this.eventSliderTimeline.set(this.eventSlider, {
             rotationZ: 0,
@@ -92,12 +92,40 @@ export class MainPage {
         this.eventSliderTimeline.to(this.eventSlider, {
             rotationZ: -30,
             rotationY: 360,
-            yPercent: -10
+            yPercent: -10,
+            onUpdate: () => this.updateItemFog()
         }, "<")
 
         this.eventSliderTimeline.to(this.eventCylinderItems, {
             "--zTranslation": "35vw",
         }, "<")
+
+        this.updateItemFog()
+    }
+
+    //Add a per-item fog overlay div (reused across items instead of hand-placed gradients)
+    createItemFog() {
+        this.eventCylinderItems.forEach((item) => {
+            let fog = document.createElement('div')
+            fog.classList.add('event-archive-item-gradient')
+            item.appendChild(fog)
+        })
+    }
+
+    //Items only ever move via the cylinder's global rotationY (own angle is fixed per item),
+    //so combining the two tells us how close each item currently is to the camera
+    updateItemFog() {
+        let quantity = this.eventCylinderItems.length
+        let globalRotationY = gsap.getProperty(this.eventSlider, "rotationY")
+
+        this.eventCylinderItems.forEach((item, i) => {
+            let ownAngle = i * (360 / quantity)
+            let combinedAngle = (ownAngle + globalRotationY) * (Math.PI / 180)
+            let facing = Math.cos(combinedAngle) // 1 = facing camera (near), -1 = facing away (far)
+            let fogOpacity = (1 - facing) / 2 // 0 near, 1 far
+
+            item.style.setProperty('--fogOpacity', fogOpacity)
+        })
     }
 
     countProjects() {
@@ -162,6 +190,119 @@ export class MainPage {
                 x: getSlotPositionX(slotIndex),
             })
         }
+
+        //Intro Stack Reveal — cards start stacked with their bottom edge 1.25rem above this
+        //section's top (i.e. still sitting in the screen above), scaled down (fan depth capped
+        //at the front 3, everything behind that sits underneath the 3rd card, unchanged).
+        //Phase 1 (scrubbed to scroll, between screen 1 and this one) drops the stack straight
+        //down into resting height while scaling up — x stays put. Once the section has fully
+        //scrolled into place, the scrub is killed (locked forward, no reversing) and phase 2
+        //takes over as a plain one-shot tween that unstacks the cards sideways into their real
+        //slot positions. Slider only becomes interactive once phase 2 completes.
+        let sliderActivated = false
+
+        const activateSlider = () => {
+            if (sliderActivated) return
+            sliderActivated = true
+
+            let previousButton = this.container.querySelector('[data-slider-prev]')
+            let nextButton = this.container.querySelector('[data-slider-next]')
+            if (previousButton) previousButton.addEventListener('click', slideLeft)
+            if (nextButton) nextButton.addEventListener('click', slideRight)
+        }
+
+        const introStackReveal = () => {
+            const STACK_SCALE = 0.3
+            const STACK_FAN_STEP = 12 // px per card while stacked, just enough to read as a deck
+            const STACK_FAN_SCALE_STEP = 0.04 // scale reduction per depth level while stacked
+            const STACK_FAN_DEPTH = 3 // only the front 3 cards fan out, the rest sit underneath the 3rd
+            const STACK_BOTTOM_OFFSET = 1.25 * rootFontSize // 1.25rem gap above the section's top
+
+            let visibleCards = Array.from({ length: VISIBLE_COUNT }, (_, slotIndex) => getCardAtSlot(slotIndex))
+            let visibleDescriptions = visibleCards.map(card => card.querySelector('.cards_item-description'))
+            let stackAnchorX = getSlotPositionX(VISIBLE_COUNT - 1) // front/active card's own final x
+
+            function fanDepth(slotIndex) {
+                return Math.min(VISIBLE_COUNT - 1 - slotIndex, STACK_FAN_DEPTH - 1)
+            }
+
+            function fannedStackX(slotIndex) {
+                return stackAnchorX - fanDepth(slotIndex) * STACK_FAN_STEP
+            }
+
+            function fannedStackScale(slotIndex) {
+                return STACK_SCALE - fanDepth(slotIndex) * STACK_FAN_SCALE_STEP
+            }
+
+            //Distance from the cards' natural resting position up to "1.25rem above the section top"
+            let section = this.projectsSliderContainer.parentElement
+            let sectionTop = section.getBoundingClientRect().top
+            let naturalBottom = container.getBoundingClientRect().bottom - sectionTop
+            let stackDropY = -STACK_BOTTOM_OFFSET - naturalBottom
+
+            //x stays fixed at the fanned position for the entire scrub — only phase 2 moves it
+            gsap.set(visibleCards, {
+                x: (slotIndex) => fannedStackX(slotIndex),
+            })
+            gsap.set(visibleDescriptions, { opacity: 0 })
+
+            //Phase 2 — unstack sideways into each card's real slot. Plain, fixed-duration tween,
+            //not scroll-linked. Only runs once phase 1's scrub has (at least started to) settle.
+            //Only touches x + description opacity, so it can't fight with phase 1's y/scale/opacity
+            //even if phase 1's scrub is still finishing its lag catch-up while this plays.
+            let unstackTimeline = gsap.timeline({
+                paused: true,
+                onStart: () => gsap.set(container, { zIndex: 0 }),
+                onComplete: () => {
+                    //Only lock the scrub out once the unstack has actually finished — scrub:1
+                    //lags behind true scroll position by design, so killing it any earlier can
+                    //freeze cards mid-interpolation instead of letting them settle naturally.
+                    dropTimeline.kill()
+                    activateSlider()
+                }
+            })
+
+            unstackTimeline.to(visibleCards, {
+                x: (slotIndex) => getSlotPositionX(slotIndex),
+                duration: 1.4,
+                stagger: 0.06,
+                ease: 'power3.out',
+            })
+
+            unstackTimeline.to(visibleDescriptions, {
+                opacity: 1,
+                duration: 0.6,
+            }, "<+=0.5")
+
+            //Phase 1 — scrubbed to scroll: drop straight down into resting height while scaling
+            //up (fan-depth scale settling to 1), no horizontal movement. Not killed here — only
+            //once unstackTimeline (above) fully completes.
+            let dropTimeline = gsap.timeline({
+                scrollTrigger: {
+                    trigger: section,
+                    start: 'top bottom',
+                    end: 'top 50%',
+                    scrub: 1,
+                    once: true,
+                    onLeave: () => { unstackTimeline.play() },
+                    onUpdate: () => {
+                        if (dropTimeline.progress() == 1) {
+                            
+                        }
+                    }
+                }
+            })
+
+            dropTimeline.from(visibleCards, {
+                y: stackDropY,
+                scale: (slotIndex) => fannedStackScale(slotIndex),
+                opacity: 1,
+                ease: 'none',
+                immediateRender: true,
+            })
+        }
+
+        introStackReveal()
 
 
         //Slide Left
@@ -315,13 +456,6 @@ export class MainPage {
 
             activeDescIndex = newIndex
         }
-
-
-        //Bind Buttons
-        let previousButton = this.container.querySelector('[data-slider-prev]')
-        let nextButton = this.container.querySelector('[data-slider-next]')
-        if (previousButton) previousButton.addEventListener('click', slideLeft)
-        if (nextButton) nextButton.addEventListener('click', slideRight)
 
     }
 

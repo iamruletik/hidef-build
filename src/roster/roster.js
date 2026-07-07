@@ -60,6 +60,11 @@ export class RosterPage {
 
         let rosterItems = this.container.querySelectorAll(selector)
         let sliderContainer = this.floatingWrapper.firstChild
+        let allSliders = this.floatingWrapper.querySelectorAll('.slider-wrapper')
+
+        //Container starts at the dummy position (near the bottom) — snap it into place on the first hover
+        //instead of sliding all the way up, then animate normally after
+        let firstHover = true
 
         rosterItems.forEach((artist) => {
 
@@ -75,11 +80,20 @@ export class RosterPage {
 
                 gsap.to(sliderContainer, {
                     y: yMov,
-                    duration: 0.3,
+                    duration: firstHover ? 0 : 0.3,
                     //overwrite: true
                 })
+                firstHover = false
 
-                gsap.set(slider, { autoAlpha: 1, zIndex: 99 })
+                //Fast moves can skip mouseleave — hide every other slider so only the hovered one shows
+                allSliders.forEach((other) => {
+                    if (other === slider) return
+                    gsap.set(other, { zIndex: 1 })
+                    gsap.to(other, { duration: 0.3, autoAlpha: 0, overwrite: true })
+                    other.dataset.sliderState = "hidden"
+                })
+
+                gsap.set(slider, { autoAlpha: 1, zIndex: 99, overwrite: true })
 
                 slider.dataset.sliderState = "active"
 
@@ -89,7 +103,7 @@ export class RosterPage {
             artist.addEventListener('mouseleave', (e) => {
 
                 gsap.set(slider, { zIndex: 1 })
-                gsap.to(slider, { duration: 0.3, autoAlpha: 0 })
+                gsap.to(slider, { duration: 0.3, autoAlpha: 0, overwrite: true })
                 slider.dataset.sliderState = "hidden"
 
             }, true)
@@ -185,17 +199,20 @@ export class RosterPage {
 
             swiperElement.append(pagination)
 
+            //Loop/autoplay only make sense with more than one slide — CMS artists can have just one
+            let multiple = slideCount > 1
+
             let swiper = new Swiper(swiperElement, {
 
                 modules: [Navigation, Pagination, Autoplay],
-                loop: true,
+                loop: multiple,
                 snapToSlideEdge: true,
                 speed: 400,
                 pagination: {
                     el: '.artist-img-pagination',
                     type: "fraction"
                 },
-                autoplay: {
+                autoplay: multiple && {
                     disableOnInteraction: false,
                     delay: 2000
                 }

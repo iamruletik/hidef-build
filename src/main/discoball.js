@@ -209,36 +209,67 @@ export class Disco {
     }
 
     scrollHomeAnimation() {
-        
-        /*gsap.to(this.scene.position, {
+
+        //Animate scene back to the main-page initial state, then attach the scrub
+        let intro = gsap.timeline({ onComplete: () => this.createHomeScrub() })
+
+        intro.to(this.scene.position, {
             y: 0,
             z: 0,
-            duration: 1,
-            ease: 'expo.inOut'
-        }) */
+            ease: 'expo.inOut',
+            duration: 1
+        })
+
+        intro.to(this.plane.position, {
+            y: 0,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+
+        //Scale too — arriving from the menu pose (scale 1.8) it must ease down, not let the scrub snap it
+        intro.to(this.plane.scale, {
+            x: 1,
+            y: 1,
+            z: 1,
+            ease: 'expo.inOut',
+            duration: 1
+        }, "<")
+
+    }
+
+    createHomeScrub() {
 
         let home = gsap.timeline({
             id: 'homeScrolltrigger',
             scrollTrigger: {
                 id: "homeScrolltrigger",
                 trigger: this.container,
-                start: 'bottom 75%',
+                start: 'bottom bottom',
                 end: 'bottom top',
                 scrub: 1,
                 //markers: true
             }
         })
 
-        home.to(this.scene.position, {
+        home.fromTo(this.scene.position, {
+            y: 0,
+            z: 0
+        }, {
             y: 1.8,
             z: -3.5
         })
 
-        home.to(this.plane.position, {
+        home.fromTo(this.plane.position, {
+            y: 0
+        }, {
             y: 0.3
         }, "<")
 
-        home.to(this.plane.scale, {
+        home.fromTo(this.plane.scale, {
+            y: 1,
+            x: 1,
+            z: 1,
+        }, {
             y: 1,
             x: 1,
             z: 1,
@@ -249,26 +280,27 @@ export class Disco {
     destroyHomeAnimation() {
         let timeline = gsap.getById('homeScrolltrigger')
         //timeline.revert()
-        timeline.kill()
+        if (timeline) timeline.kill()
         this.animateToHeader()
     }
 
     animateToHeader() {
-        gsap.to(this.scene.position, {
+        let tl = gsap.timeline()
+        tl.to(this.scene.position, {
             y: 1.8,
             z: -3.5
         })
-        gsap.to(this.plane.scale, {
+        tl.to(this.plane.scale, {
             y: 1,
             x: 1,
             z: 1,
             ease: 'expo.inOut',
-            duration: 1
+            duration: 0.5
         }, "<")
-        gsap.to(this.plane.position, {
+        tl.to(this.plane.position, {
             y: 0.3,
             ease: 'expo.inOut',
-            duration: 1
+            duration: 0.5
         }, "<")
 
     }
@@ -300,21 +332,18 @@ export class Disco {
     }
 
     setToHeader() {
-        gsap.set(this.scene.position, {
+        let tl = gsap.timeline()
+        tl.set(this.scene.position, {
             y: 1.8,
             z: -3.5
         })
-        gsap.set(this.plane.position, {
-            y: 0.3,
-            ease: 'expo.inOut',
-            duration: 1
+        tl.set(this.plane.position, {
+            y: 0.3
         }, "<")
-        gsap.set(this.plane.scale, {
+        tl.set(this.plane.scale, {
             y: 1,
             x: 1,
-            z: 1,
-            ease: 'expo.inOut',
-            duration: 1
+            z: 1
         }, "<")
     }
 

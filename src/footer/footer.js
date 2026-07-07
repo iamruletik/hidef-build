@@ -7,6 +7,7 @@ export class Footer {
 
     constructor() {
         this.footer = document.querySelector('.footer-wrapper')
+        this.bookingButton = document.querySelector('.booking_button')
         this.footerLogoInstance = document.querySelector('.footer-logo-instance-stretched')
         this.footerTrigger = document.querySelector('.footer-content-grid')
         this.footerEndTrigger = document.querySelector('.footer-content-container')
@@ -14,7 +15,9 @@ export class Footer {
         this.footerDummy = document.querySelector('.footer-dummy')
     }
 
-    setup() {
+    setup(lenis) {
+        this.lenis = lenis
+
         this.footerTimeline.to(this.footerLogoInstance, {
             scrollTrigger: {
                 trigger: this.footerTrigger,
@@ -34,6 +37,30 @@ export class Footer {
         let datepicker = new AirDatepicker('#event-date', {
             locale: localeEn,
             dateFormat: 'MM/dd/yyyy',
+        })
+
+        this.scrollToFooter()
+
+    }
+
+    scrollToFooter() {
+
+        this.bookingButton.addEventListener('click', () => {
+            this.lenis.stop()
+            this.lenis.scrollTo(this.footer, {
+                force: true,
+                onComplete: () => this.lenis.start()
+            })
+        })
+
+        gsap.to(this.bookingButton, {
+            yPercent: 200,
+            ease: 'expo.inOut',
+            scrollTrigger: {
+                trigger: this.footer,
+                start: 'top bottom',
+                toggleActions: 'play none none reverse',
+            }
         })
 
     }

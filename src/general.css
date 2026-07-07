@@ -162,6 +162,14 @@ body {
   transform-style: preserve-3d;
 }
 
+.event-archive-item-gradient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgb(12 12 12) 0%, rgb(12 12 12 / 0%) 200%);
+  opacity: var(--fogOpacity, 0);
+}
+
 /* NEW wrapper — must fill the banner exactly like the slider did */
 .event_archive-slider-wrapper {
   position: absolute;
@@ -194,6 +202,14 @@ body {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%) translateZ(0vw);
+  position: absolute;
+}
+
+.event-archive-gradient {
+  position: absolute;
+  background: linear-gradient(180deg, #0C0C0C 16%, rgba(12, 12, 12, 0.0) 45%);
+  pointer-events: none;
+  inset: 0;
 }
 
 
@@ -250,7 +266,7 @@ body {
 .slider_cards {
   align-items: flex-start;
   position: relative;
-  overflow: hidden;
+  z-index: 99998;
 }
 
 .projects-slider-cards-item {
@@ -323,21 +339,21 @@ body {
 }
 
 
-.arrow-right:hover svg{
+.arrow-right:hover svg {
   transform: translateX(0.25rem);
   transition: transform 0.3s ease-in-out;
 }
 
-.arrow-left:hover svg{
+.arrow-left:hover svg {
   transform: translateX(-0.25rem);
   transition: transform 0.3s ease-in-out;
 }
 
-.arrow-left svg{
+.arrow-left svg {
   transition: transform 0.3s ease-in-out;
 }
 
-.arrow-right svg{
+.arrow-right svg {
   transition: transform 0.3s ease-in-out;
 }
 
@@ -345,6 +361,7 @@ body {
 .arrow-right {
   position: relative;
 }
+
 .arrow-left::before,
 .arrow-right::before {
   content: '';
@@ -362,4 +379,19 @@ body {
 .arrow-right:hover::before,
 .arrow-left:hover::before {
   background-color: #ffffff10;
+}
+
+input:checked+.w-form-label {
+  color: black;
+}
+
+.contact-form-field-checkbox:has(input:checked) {
+  background-color: white;
+}
+
+.fogLayer {
+  background-color: rgba(12, 12, 12, 0.1);
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
 }

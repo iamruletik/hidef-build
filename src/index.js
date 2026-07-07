@@ -40,8 +40,29 @@ function setFooterColor(color) {
 }
 
 
+// Don't let the browser restore scroll on reload/back — we control it
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
 // Initialize a new Lenis instance for smooth scrolling
 const lenis = new Lenis({ lerp: 0.075 })
+
+// Lock scrolling through the preload — started again when the preloader finish animation completes
+lenis.stop()
+
+// First visit — start at the top
+lenis.scrollTo(0, { immediate: true, force: true })
+
+// The browser restores scroll a frame or two after load (once the page hits full height), overriding the
+// line above. Pin to the top for a few frames after load — native + lenis — to win that race.
+window.addEventListener('load', () => {
+    let frames = 0
+    function pinTop() {
+        window.scrollTo(0, 0)
+        lenis.scrollTo(0, { immediate: true, force: true })
+        if (frames++ < 5) requestAnimationFrame(pinTop)
+    }
+    pinTop()
+})
 
 // Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 lenis.on('scroll', ScrollTrigger.update)
@@ -49,7 +70,7 @@ gsap.ticker.add((time) => { lenis.raf(time * 1000)  })
 gsap.ticker.lagSmoothing(0)
 
 
-headerInit()
+headerInit(lenis)
 createNoise()
 
 //Preloader
@@ -58,7 +79,7 @@ preloader.load()
 
 //Footer
 let footer = new Footer()
-footer.setup()
+footer.setup(lenis)
 
 let discoball = new Disco()
 let discoScene = downloadDiscoModel(discomodel)
@@ -82,19 +103,39 @@ let menu = new Menu()
 menu.setup(lenis, menuEvents)
 let menuTimeline
 
+//Hide the stacked slider cards while covered. zIndex 0 means unstack already started (see main.js) — leave it
+function toggleStackedSliderCards(opacity) {
+    let cards = document.querySelector('.slider_cards')
+    if (cards && getComputedStyle(cards).zIndex !== '0') gsap.to(cards, { opacity: opacity, duration: 0.3 })
+}
+
+//Hide the running line while the menu is open. Queried fresh each open — barba swaps the container it lives in
+let runningLineMenuTl
+
 document.addEventListener('menuOpened', () => {
     menuTimeline = gsap.timeline({
         onReverseComplete: () => {
+            toggleStackedSliderCards(1)
             menuTimeline.kill()
             console.log(menuTimeline)
         }
     })
     discoball.animateToMenu(menuTimeline)
+    toggleStackedSliderCards(0)
+
+    let runningLine = document.querySelector('.running_line')
+    if (runningLine) {
+        runningLineMenuTl = gsap.timeline()
+        runningLineMenuTl.to(runningLine.querySelectorAll('.char-svg'), { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
+        runningLineMenuTl.to(runningLine.querySelectorAll('.icon-svg'), { autoAlpha: 0 }, "<")
+    }
+
     console.log('Menu Opened')
 })
 
 document.addEventListener('menuClosed', () => {
     discoball.revertMenuAnimation(menuTimeline)
+    if (runningLineMenuTl) runningLineMenuTl.reverse()
     console.log('Menu Closed')
 })
 
@@ -126,6 +167,8 @@ barba.init({
             },
             leave(data) {
                 console.log("LEAVING ROSTER")
+                lenis.scrollTo(0, { immediate: true })
+                discoball.setToHeader()
             },
             after(data) {
                 console.log("ENTERING ARTIST")
@@ -144,6 +187,8 @@ barba.init({
             },
             leave(data) {
                 console.log("LEAVING ARTIST")
+                lenis.scrollTo(0, { immediate: true })
+                discoball.setToHeader()
             },
             after(data) {
                 console.log("ENTERING ROSTER")
@@ -160,7 +205,11 @@ barba.init({
                 console.log("BEFORE LEAVE")
                 console.log(data)
             },
-            leave(data) { console.log("LEAVE") },
+            leave(data) {
+                console.log("LEAVE")
+                toggleStackedSliderCards(0)
+                lenis.scrollTo(0, { immediate: true })
+            },
             afterLeave(data) { console.log("AFTER LEAVE") },
 
             beforeEnter: (data) => {
@@ -169,6 +218,8 @@ barba.init({
                     //Get name of the nex page
                     let text = document.querySelector(".transition-container-content-text")
                     text.innerText = data.next.namespace.toUpperCase()
+                    //Header pose the disco ball for every page except main (main runs its own scroll animation)
+                    if (data.next.namespace !== 'main') discoball.animateToHeader()
                     leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
                 })
             },
@@ -185,8 +236,13 @@ barba.init({
 
                     //if (rosterSlider) { rosterSlider.remove() }
 
-                    enterAnimation(data.current.container, defaultTransititonContainer, resolve)
+                    //Prime the page intro as the overlay begins lifting — snap-to-hidden stays behind the overlay,
+                    //then it animates in as the page is revealed (no settled-then-animate flicker)
+                    enterAnimation(data.current.container, defaultTransititonContainer, resolve, () => revealPageContent(data.next.container))
                     footer.update()
+
+                    //Reveal the running line as the overlay lifts (first load is handled by the preloader)
+                    revealRunningLine(data.next.container)
                 })
             }
         }],
@@ -217,7 +273,6 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Roster")
             setFooterColor("#FF383C")
-            discoball.animateToHeader()
         },
         afterEnter(data) {
             let roster = new RosterPage(data.next.container)
@@ -229,8 +284,6 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Archive")
             setFooterColor("#A7CEED")
-            discoball.animateToHeader()
-
         },
         afterEnter(data) {
             //console.log(document.querySelector('.archive-content-projects-list'))
@@ -243,8 +296,6 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Project")
             setFooterColor("#A7CEED")
-            discoball.animateToHeader()
-
         },
         afterEnter(data) {
             let project = new ProjectPage(data.next.container)
@@ -257,8 +308,6 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba About")
             setFooterColor("#FCB8FA")
-            discoball.animateToHeader()
-
         },
         afterEnter(data) {
             let about = new AboutPage()
@@ -270,7 +319,6 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba Services")
             setFooterColor("#FF383C")
-            discoball.animateToHeader()
 
             let services = new ServicePage(data.next.container)
             services.setup()
@@ -283,14 +331,37 @@ barba.init({
         beforeEnter(data) {
             console.log("Barba ARTIST")
             setFooterColor("#FF383C")
-            discoball.animateToHeader()
-
         },
         afterEnter(data) {
             let artist = new ArtistPage(data.next.container)
             artist.setup()
         }
+    }, {
+        //PRIVACY PAGE
+        namespace: 'privacy',
+        beforeEnter(data) {
+            console.log("Barba PRIVACY")
+            setFooterColor("#FF383C")
+        },
+        afterEnter(data) {
+
+        }
     }]
+})
+
+
+//Reset scroll to the top on every barba navigation (before the new page renders)
+barba.hooks.beforeEnter(() => {
+    lenis.scrollTo(0, { immediate: true })
+})
+
+//The floating image wrapper is shared across roster<->artist — remove it when leaving that pair for anything else
+barba.hooks.beforeLeave((data) => {
+    let rosterPages = ['roster', 'artist']
+    if (rosterPages.includes(data.current.namespace) && !rosterPages.includes(data.next.namespace)) {
+        let wrapper = document.querySelector('.roster-floating-image-wrapper')
+        if (wrapper) wrapper.remove()
+    }
 })
 
 
@@ -326,10 +397,50 @@ function leaveAnimation(barbaContainer, transitionContainer, resolve) {
 }
 
 //DEFAULT BARBA ENTER ANIMATION
-function enterAnimation(barbaContainer, transitionContainer, resolve) {
+function enterAnimation(barbaContainer, transitionContainer, resolve, onReveal) {
     let enter = gsap.timeline()
     enter.from(barbaContainer, { y: 100, autoAlpha: 0 })
-    enter.to(transitionContainer, { yPercent: -100, ease: "expo.inOut", onComplete: () => { resolve() } })
+    enter.to(transitionContainer, {
+        yPercent: -100,
+        ease: "expo.inOut",
+        //Fires while the overlay still covers the page, so the intro's snap-to-hidden happens unseen
+        onStart: () => { if (onReveal) onReveal() },
+        onComplete: () => { resolve() }
+    })
+}
+
+//RUNNING LINE REVEAL — chars staggered in, icons fade in (same as the menu). Per-page, so every container has its own
+function revealRunningLine(container) {
+    let runningLine = container.querySelector('.running_line')
+    if (!runningLine) return
+
+    let chars = runningLine.querySelectorAll('.char-svg')
+    let icons = runningLine.querySelectorAll('.icon-svg')
+
+    let tl = gsap.timeline()
+    tl.from(chars, { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
+    tl.from(icons, { autoAlpha: 0 }, "<")
+}
+
+//Play the same intro the roster<->artist transitions use, for pages reached another way (direct load, default transition)
+function revealPageContent(container) {
+    let namespace = container?.dataset.barbaNamespace
+
+    if (namespace === 'roster') {
+        new ArtistToRosterTransition().animateList(container)
+    } else if (namespace === 'artist') {
+        gsap.registerPlugin(SplitText)
+        new RosterToArtistTransition().animateContent(container)
+    }
+}
+
+//Direct/first load: no transition runs, so trigger it off the preloader. Delayed so it fires partway into the
+//cutOut reveal — when the page is actually visible, not at its first frame
+function playInitialPageReveal() {
+    let container = document.querySelector('[data-barba="container"]')
+    if (!container) return
+
+    gsap.delayedCall(0.4, () => revealPageContent(container))
 }
 
 
@@ -343,8 +454,13 @@ async function downloadDiscoModel(url) {
             console.log('GLTF is Downloaded')
             const data = await response.arrayBuffer()
             const scene = await discoball.loadModel(data)
-            preloader.finish()
+            preloader.finish(() => { lenis.start(); playInitialPageReveal() })
             discoball.run(scene.children[0])
+
+            //Position the ball for the initial page now that it's rendered (subpages start at the header)
+            let namespace = document.querySelector('[data-barba="container"]')?.dataset.barbaNamespace
+            if (namespace !== 'main') discoball.setToHeader()
+
             return scene
             // ...do something with the response
         } else {
