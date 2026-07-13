@@ -20,9 +20,10 @@ export default function headerInit(lenis) {
     let ht = gsap.timeline({
                 scrollTrigger: {
                     trigger: main,
-                    start: "top top",
+                    start: "top+=100 top",
                     end: "+=400",
-                    scrub: 0.5
+                    toggleActions: "play none none reverse",
+                    //scrub: 0.5
                 }
     })
     

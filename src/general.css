@@ -302,7 +302,6 @@ body {
 }
 
 .default-button .text-block {
-  filter: blur(0.5px);
   backface-visibility: hidden;
   transform: translate3d(0, 0, 1px);
 }
