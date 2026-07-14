@@ -3,3 +3,21 @@
     transform-origin: center;
     transform-box: fill-box;
 }
+
+.menu-large-link {
+    position: relative;
+}
+
+/* Driven by GSAP via the --arrow-o custom property on the link (pseudo-elements can't be animated directly) */
+.menu-large-link::before {
+    opacity: var(--arrow-o, 0);
+}
+
+.menu-large-link::after {
+    font-family: Martian Mono, Arial, sans-serif;
+    font-variation-settings: "wght" 250, "wdth" 75;
+    font-size: 0.875rem;
+    line-height: 1;
+    padding-top: 0.125rem;
+    content: "0" counter(menu-large-link);
+}

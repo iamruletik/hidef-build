@@ -3,6 +3,7 @@ import discomodel from './glb/discoball_compressed.glb'
 import hdri from './glb/output_lowres.hdr'
 import './fluid.css'
 import './general.css'
+import './templates.css'
 import './preloader/preloader.css'
 import './lenis.css'
 import './default_transition.css'
@@ -26,6 +27,7 @@ import { ArtistPage } from './roster/artist'
 import { RosterToArtistTransition } from './roster/inTransition'
 import { ArtistToRosterTransition } from './roster/outTransition'
 import createNoise from './noise/noise'
+import { unwarpImages } from './imagefx/unwarp'
 import headerInit from './header/header'
 import projectInit from './archive/project'
 import { MainPage } from './main/main'
@@ -44,7 +46,7 @@ function setFooterColor(color) {
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
 // Initialize a new Lenis instance for smooth scrolling
-const lenis = new Lenis({ lerp: 0.075 })
+const lenis = new Lenis({ lerp: 0.07 })
 
 // Lock scrolling through the preload — started again when the preloader finish animation completes
 lenis.stop()
@@ -254,7 +256,7 @@ barba.init({
             console.log("Barba Main")
             setFooterColor("#FF383C")
 
-            home = new MainPage(data.next.container)
+            home = new MainPage(data.next.container, lenis)
             home.setup()
 
         },
@@ -264,6 +266,7 @@ barba.init({
             console.log("Barba Main After Enter")
         },
         beforeLeave() {
+            if (home) home.destroy()
             home = null
             discoball.destroyHomeAnimation()
         }
@@ -355,6 +358,12 @@ barba.hooks.beforeEnter(() => {
     lenis.scrollTo(0, { immediate: true })
 })
 
+//Register the new page's images for the reveal unwarp — after the transition, so bursts
+//aren't wasted behind the overlay
+barba.hooks.after((data) => {
+    unwarpImages(data.next.container)
+})
+
 //The floating image wrapper is shared across roster<->artist — remove it when leaving that pair for anything else
 barba.hooks.beforeLeave((data) => {
     let rosterPages = ['roster', 'artist']
@@ -431,6 +440,8 @@ function revealPageContent(container) {
     } else if (namespace === 'artist') {
         gsap.registerPlugin(SplitText)
         new RosterToArtistTransition().animateContent(container)
+    } else if (namespace === 'main' && home) {
+        home.revealHeroBottom()
     }
 }
 
@@ -454,7 +465,7 @@ async function downloadDiscoModel(url) {
             console.log('GLTF is Downloaded')
             const data = await response.arrayBuffer()
             const scene = await discoball.loadModel(data)
-            preloader.finish(() => { lenis.start(); playInitialPageReveal() })
+            preloader.finish(() => { lenis.start(); playInitialPageReveal(); unwarpImages() })
             discoball.run(scene.children[0])
 
             //Position the ball for the initial page now that it's rendered (subpages start at the header)

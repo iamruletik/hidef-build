@@ -1,0 +1,66 @@
+.template-rich-text h1 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 4rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text h2 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 3rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text h3 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 2.5rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text h4 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 2rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text h5 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text h6 {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.template-rich-text blockquote {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.template-rich-text li {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.template-rich-text a,
+li a,
+blockquote a {
+    font-family: Helvetica Now, Arial, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: inherit !important;
+    text-decoration: underline;
+}

@@ -259,7 +259,9 @@ body {
   backface-visibility: visible;
   border-radius: 0.75rem;
   overflow: hidden;
-  transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation));
+  /* --cardScale rides in the same var-driven transform — GSAP's own scale would bake an inline
+     matrix and disconnect the live --position calc */
+  transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation)) scale(var(--cardScale, 1));
 }
 
 /* Projects Slider */
@@ -343,6 +345,54 @@ body {
   transition: transform 0.3s ease-in-out;
 }
 
+/* Service slider click zones — overlay on the swiper, left half prev / right half next.
+   Native cursor hidden; .slider-cursor is a real element following the mouse so it can be
+   tinted per folder and popped on click */
+.slider-nav-zones {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  cursor: none;
+}
+
+.slider-nav-zone {
+  width: 50%;
+  height: 100%;
+}
+
+.slider-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px; /* center on the mouse point */
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 6;
+}
+
+.slider-cursor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* "SEE OUR PROJECTS" next to the stacked cards — wrapper is the mask, inner text rolls into it on scroll */
+.stack-side-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--gray-1);
+}
+
 .arrow-left:hover svg {
   transform: translateX(-0.25rem);
   transition: transform 0.3s ease-in-out;
@@ -393,4 +443,53 @@ input:checked+.w-form-label {
   position: absolute;
   pointer-events: none;
   inset: 0;
+}
+
+
+.hidef-logo-threshold {
+  /* per-pixel threshold of whatever is rendered behind this box */
+  backdrop-filter: grayscale(1) invert(1) contrast(1000);
+  -webkit-backdrop-filter: grayscale(1) invert(1) contrast(1000);
+
+  /* confine the filtered box to the logo silhouette */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 441 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M422.059 9.1404H377.193V13.38H419.655V22.2203H377.193V35.3001H335.254V0.300126H422.059V9.1404Z' fill='currentColor'/%3E%3Cpath d='M329.883 9.1404H285.017V13.38H327.479V22.2203H285.017V26.4599H329.883V35.3001H243.078V0.300126H329.883V9.1404Z' fill='currentColor'/%3E%3Cpath d='M186.696 0.300126C200.368 0.300127 212.317 0.927758 220.684 2.57415C228.614 4.10767 233.298 6.1862 235.177 8.64192C236.908 10.8773 237.709 13.9655 237.709 17.8444C237.709 21.6996 236.84 24.7951 234.959 27.069C233.067 29.4888 228.45 31.5424 220.684 33.0704L220.679 33.0713L220.675 33.0723C212.44 34.688 200.693 35.3001 187.297 35.3001H145.096V0.300126H186.696ZM187.034 26.4484C190.278 26.398 191.463 26.192 191.903 26.0855L191.973 26.0685L192.044 26.0519C193.474 25.7211 194.696 25.2196 195.275 24.4142C195.976 23.4041 196.372 21.9809 196.372 20.1057V15.3615C196.372 13.515 195.976 12.1243 195.28 11.1481C194.687 10.3173 193.488 9.83678 192.238 9.54686L192.17 9.531L192.103 9.51474C191.654 9.40606 190.429 9.19386 187.034 9.14901V26.4484Z' fill='currentColor'/%3E%3Cpath d='M139.722 35.3001H97.7832V0.300126H139.722V35.3001Z' fill='currentColor'/%3E%3Cpath d='M41.9386 13.38H50.4749V0.300126H92.4135V35.3001H50.4749V22.2203H41.9386V35.3001H0V0.300126H41.9386V13.38Z' fill='currentColor'/%3E%3Cpath d='M434.428 0C436.172 0 437.66 0.592 438.892 1.776C440.108 2.944 440.716 4.392 440.716 6.12C440.716 7.816 440.108 9.248 438.892 10.416C437.66 11.6 436.172 12.192 434.428 12.192C432.668 12.192 431.172 11.6 429.94 10.416C428.724 9.248 428.116 7.816 428.116 6.12C428.116 4.392 428.724 2.944 429.94 1.776C431.172 0.592 432.668 0 434.428 0ZM434.428 10.824C435.772 10.824 436.916 10.376 437.86 9.48C438.772 8.6 439.228 7.48 439.228 6.12C439.228 4.76 438.772 3.624 437.86 2.712C436.916 1.816 435.772 1.368 434.428 1.368C433.068 1.368 431.924 1.816 430.996 2.712C430.068 3.624 429.604 4.76 429.604 6.12C429.604 7.48 430.068 8.6 430.996 9.48C431.924 10.376 433.068 10.824 434.428 10.824ZM437.02 7.536L437.068 8.376C437.1 8.744 437.188 9 437.332 9.144H435.604C435.492 8.936 435.428 8.68 435.412 8.376L435.364 7.728C435.348 7.424 435.284 7.224 435.172 7.128C435.076 7.016 434.892 6.96 434.62 6.96H433.588V9.144H431.956V2.976H434.86C435.58 2.976 436.14 3.136 436.54 3.456C436.94 3.776 437.14 4.224 437.14 4.8C437.14 5.44 436.852 5.904 436.276 6.192C436.756 6.416 437.004 6.864 437.02 7.536ZM433.588 4.344V5.688H434.692C435.188 5.688 435.436 5.464 435.436 5.016C435.436 4.568 435.18 4.344 434.668 4.344H433.588Z' fill='currentColor'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' viewBox='0 0 441 36' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M422.059 9.1404H377.193V13.38H419.655V22.2203H377.193V35.3001H335.254V0.300126H422.059V9.1404Z' fill='currentColor'/%3E%3Cpath d='M329.883 9.1404H285.017V13.38H327.479V22.2203H285.017V26.4599H329.883V35.3001H243.078V0.300126H329.883V9.1404Z' fill='currentColor'/%3E%3Cpath d='M186.696 0.300126C200.368 0.300127 212.317 0.927758 220.684 2.57415C228.614 4.10767 233.298 6.1862 235.177 8.64192C236.908 10.8773 237.709 13.9655 237.709 17.8444C237.709 21.6996 236.84 24.7951 234.959 27.069C233.067 29.4888 228.45 31.5424 220.684 33.0704L220.679 33.0713L220.675 33.0723C212.44 34.688 200.693 35.3001 187.297 35.3001H145.096V0.300126H186.696ZM187.034 26.4484C190.278 26.398 191.463 26.192 191.903 26.0855L191.973 26.0685L192.044 26.0519C193.474 25.7211 194.696 25.2196 195.275 24.4142C195.976 23.4041 196.372 21.9809 196.372 20.1057V15.3615C196.372 13.515 195.976 12.1243 195.28 11.1481C194.687 10.3173 193.488 9.83678 192.238 9.54686L192.17 9.531L192.103 9.51474C191.654 9.40606 190.429 9.19386 187.034 9.14901V26.4484Z' fill='currentColor'/%3E%3Cpath d='M139.722 35.3001H97.7832V0.300126H139.722V35.3001Z' fill='currentColor'/%3E%3Cpath d='M41.9386 13.38H50.4749V0.300126H92.4135V35.3001H50.4749V22.2203H41.9386V35.3001H0V0.300126H41.9386V13.38Z' fill='currentColor'/%3E%3Cpath d='M434.428 0C436.172 0 437.66 0.592 438.892 1.776C440.108 2.944 440.716 4.392 440.716 6.12C440.716 7.816 440.108 9.248 438.892 10.416C437.66 11.6 436.172 12.192 434.428 12.192C432.668 12.192 431.172 11.6 429.94 10.416C428.724 9.248 428.116 7.816 428.116 6.12C428.116 4.392 428.724 2.944 429.94 1.776C431.172 0.592 432.668 0 434.428 0ZM434.428 10.824C435.772 10.824 436.916 10.376 437.86 9.48C438.772 8.6 439.228 7.48 439.228 6.12C439.228 4.76 438.772 3.624 437.86 2.712C436.916 1.816 435.772 1.368 434.428 1.368C433.068 1.368 431.924 1.816 430.996 2.712C430.068 3.624 429.604 4.76 429.604 6.12C429.604 7.48 430.068 8.6 430.996 9.48C431.924 10.376 433.068 10.824 434.428 10.824ZM437.02 7.536L437.068 8.376C437.1 8.744 437.188 9 437.332 9.144H435.604C435.492 8.936 435.428 8.68 435.412 8.376L435.364 7.728C435.348 7.424 435.284 7.224 435.172 7.128C435.076 7.016 434.892 6.96 434.62 6.96H433.588V9.144H431.956V2.976H434.86C435.58 2.976 436.14 3.136 436.54 3.456C436.94 3.776 437.14 4.224 437.14 4.8C437.14 5.44 436.852 5.904 436.276 6.192C436.756 6.416 437.004 6.864 437.02 7.536ZM433.588 4.344V5.688H434.692C435.188 5.688 435.436 5.464 435.436 5.016C435.436 4.568 435.18 4.344 434.668 4.344H433.588Z' fill='currentColor'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: left;
+  mask-position: left;
+}
+
+
+.logo-description-threshold {
+    /* per-pixel threshold of whatever is rendered behind this box */
+  backdrop-filter: grayscale(1) invert(1) contrast(1000);
+  -webkit-backdrop-filter: grayscale(1) invert(1) contrast(1000);
+
+  /* confine the filtered box to the logo silhouette */
+  -webkit-mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a54f8d605dc14cb9bea611a_svgviewer-output.svg");
+  mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a54f8d605dc14cb9bea611a_svgviewer-output.svg");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: left;
+  mask-position: left;
+}
+
+
+/* SplitText masked line reveals (service folder content).
+   Mask wrappers default to inline-block, which adds baseline gaps between stacked lines — force block.
+   The negative margin lets the padded masks overlap so the padding below doesn't inflate layout. */
+:has(> .reveal-line) {
+  display: block;
+  margin-block: -0.3em;
+}
+
+/* Tight line-heights (e.g. 0.7 headlines) let glyphs spill past the line box and get clipped by the mask.
+   Padding gives the clip region room; the mask's negative margin above cancels it out of the layout. */
+.reveal-line {
+  padding-block: 0.3em;
 }

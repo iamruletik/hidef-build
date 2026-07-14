@@ -23,8 +23,91 @@
 
 
     --adp-background-color: var(--gray-2);
-    --adp-cell-background-color-selected:  var(--red);
+    --adp-cell-background-color-selected: var(--red);
     --adp-cell-background-color-selected-hover: var(--red);
     --adp-background-color-selected-hover: var(--red);
     --adp-background-color-selected-focused: var(--red);
+}
+
+/* .ss-content is portaled to <body>, outside the wrapper — style both so the panel matches the control */
+.custom-dropdown-wrapper,
+.ss-content {
+    /* Colors */
+    --ss-primary-color: var(--footer-color);
+    --ss-bg-color: #f4f4ed14;
+    --ss-font-color: var(--gray-1);
+    --ss-placeholder-color: var(--gray-1);
+    --ss-border-color: transparent;
+    --ss-focus-color: #f4f4ed16;
+    --ss-border-radius: 0.5rem;
+
+    /* Heights */
+    --ss-main-height: 3rem;
+    --ss-search-height: var(--ss-main-height);
+    --ss-option-height: var(--ss-main-height);
+    --ss-content-height: 300px;
+
+    /* Spacing */
+    --ss-spacing-l: 9px;
+    --ss-spacing-m: 7px;
+    --ss-spacing-s: 5px;
+
+    /* Animation */
+    --ss-animation-timing: 0.2s;
+
+    /* Typography — matches the text fields, inherited by the control and the options */
+    font-family: "Martian Mono", Arial, sans-serif;
+    font-variation-settings: "wght" 300, "wdth" 75;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+/* The closed control — box styling to match the text fields */
+.ss-main {
+    padding: 0 1rem;
+    border: 0;
+    margin-bottom: 0;
+    cursor: pointer;
+    transition: background-color 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+}
+
+.ss-main:hover {
+    background-color: #f4f4ed30;
+    transition: background-color 0.3s cubic-bezier(0.645, 0.045, 0.355, 1) !important;
+}
+
+
+
+.ss-content {
+    backdrop-filter: blur(40px) !important;
+}
+
+/* Replace the browser's blue focus ring */
+.ss-main:focus,
+.ss-main:focus-visible {
+    outline: none;
+}
+
+/* SlimSelect paints hovered/selected option text with --ss-bg-color (near-transparent here) — force it opaque */
+.ss-content .ss-option:hover,
+.ss-content .ss-option.ss-highlighted,
+.ss-content .ss-option.ss-selected {
+    color: #f4f4ed !important;
+    
+}
+
+.ss-selected,
+.ss-highlighted {
+    color: #f4f4ed !important;
+}
+
+
+/* .fake-button is a child of .default-button (a sibling of the submit button), not a sibling itself.
+   :has() in both directions makes this work regardless of DOM order. Resting top:0% is handled by
+   the existing .default-button .fake-button rule. */
+.contact-form-submit-button:hover ~ .default-button .fake-button,
+.default-button:has(~ .contact-form-submit-button:hover) .fake-button {
+  top: -100%;
+  transition: top 0.4s cubic-bezier(0, .68, .49, 1);
 }

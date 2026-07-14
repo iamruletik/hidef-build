@@ -51,7 +51,7 @@ export class Preloader {
 
     this.pt.to(".first-preloader-image", {
       delay: 0.25,
-      yPercent: 100,
+      yPercent: 125,
       duration: 0.5,
       scale: 1.02,
       ease: "circ.out"
@@ -67,7 +67,7 @@ export class Preloader {
 
     this.pt.to(".other-preloader-image", {
       delay: 0.1,
-      yPercent: 100,
+      yPercent: 125,
       stagger: 0.3,
       scale: 1.02,
       duration: 0

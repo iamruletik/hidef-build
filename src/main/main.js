@@ -7,11 +7,15 @@ import 'swiper/css/pagination';
 
 export class MainPage {
 
-    constructor(barbaContainer) {
+    constructor(barbaContainer, lenis) {
         this.container = barbaContainer
+        this.lenis = lenis
         this.runningLineTimeline = gsap.timeline().pause()
         this.runningLineWrapper = barbaContainer.querySelector('.running_line')
         this.runningLine = barbaContainer.querySelectorAll('.running_line_container')
+
+        this.heroBottomContent = barbaContainer.querySelector('.hero_bottom_content')
+        this.heroSplit = null
 
         this.projectsCounter = barbaContainer.querySelector('.bottom_content-number')
         this.dummyProjectsObject = barbaContainer.querySelector('.dummy-all-project-counter')
@@ -60,7 +64,45 @@ export class MainPage {
 
         this.eventSliderAnimation()
 
+        this.heroBottomAnimation()
 
+    }
+
+    //Hero bottom block: split once, parked hidden below its line masks. Revealed via revealHeroBottom()
+    //(preloader end / barba enter), hidden back into the mask as soon as scrolling starts
+    heroBottomAnimation() {
+        if (!this.heroBottomContent) return
+
+        this.heroSplit = new SplitText(this.heroBottomContent, { type: 'lines', mask: 'lines' })
+        gsap.set(this.heroSplit.lines, { yPercent: 100 })
+
+        //Hide upward into the mask once the user scrolls past 50px; comes back at the top
+        gsap.fromTo(this.heroSplit.lines,
+            { yPercent: 0 },
+            {
+                yPercent: -100,
+                stagger: 0.03,
+                duration: 0.5,
+                ease: 'power2.in',
+                immediateRender: false, //don't stomp the pre-reveal hidden state (yPercent 100)
+                scrollTrigger: {
+                    trigger: this.container,
+                    start: 'top+=50 top',
+                    toggleActions: 'play none none reverse'
+                }
+            })
+    }
+
+    //Lines rise up out of the mask into place.
+    //No overwrite here — overwrite:true would kill the ScrollTrigger-attached hide tween (not yet played)
+    revealHeroBottom() {
+        if (!this.heroSplit) return
+        gsap.to(this.heroSplit.lines, {
+            yPercent: 0,
+            stagger: 0.06,
+            duration: 0.8,
+            ease: 'power2.out'
+        })
     }
 
 
@@ -100,7 +142,60 @@ export class MainPage {
             "--zTranslation": "35vw",
         }, "<")
 
+        this.eventCardsFanOut()
+
         this.updateItemFog()
+    }
+
+    //Cards start clustered at slot 1, scaled to 0. When the section is properly on screen they pop in
+    //and sweep one direction around the ring into their slots (all deltas positive = same direction;
+    //farther cards travel farther, everyone arrives together)
+    eventCardsFanOut() {
+        gsap.set(this.eventCylinderItems, { '--position': 1, '--cardScale': 0 })
+
+        //Text block reveals with the fan-out: heading + paragraph lines from their masks, button fades up
+        let textBlock = this.container.querySelector('.event_archive-content_text')
+        let textSplit = null
+        let button = null
+        if (textBlock) {
+            button = textBlock.querySelector('.default-button')
+            textSplit = new SplitText(
+                [textBlock.querySelector('.h4'), textBlock.querySelector('.large_paragraph')].filter(Boolean),
+                { type: 'lines', mask: 'lines' }
+            )
+            gsap.set(textSplit.lines, { yPercent: 100 })
+            if (button) gsap.set(button, { autoAlpha: 0, y: 20 })
+        }
+
+        ScrollTrigger.create({
+            trigger: this.eventSection,
+            start: 'top 60%',
+            once: true,
+            onEnter: () => {
+                gsap.to(this.eventCylinderItems, {
+                    '--position': (i) => i + 1,
+                    '--cardScale': 1,
+                    duration: 1,
+                    stagger: 0.05,
+                    ease: 'power2.inOut', //cubic
+                    onUpdate: () => this.updateItemFog()
+                })
+
+                if (textSplit) {
+                    gsap.to(textSplit.lines, {
+                        yPercent: 0,
+                        duration: 0.8, stagger: 0.07, ease: 'power2.out'
+                    })
+                }
+
+                if (button) {
+                    gsap.to(button, {
+                        autoAlpha: 1, y: 0,
+                        duration: 0.6, ease: 'power2.out', delay: 0.3
+                    })
+                }
+            }
+        })
     }
 
     //Add a per-item fog overlay div (reused across items instead of hand-placed gradients)
@@ -119,7 +214,9 @@ export class MainPage {
         let globalRotationY = gsap.getProperty(this.eventSlider, "rotationY")
 
         this.eventCylinderItems.forEach((item, i) => {
-            let ownAngle = i * (360 / quantity)
+            //Live --position, not the index — during the fan-out cards are between slots
+            let position = parseFloat(gsap.getProperty(item, '--position')) || i + 1
+            let ownAngle = (position - 1) * (360 / quantity)
             let combinedAngle = (ownAngle + globalRotationY) * (Math.PI / 180)
             let facing = Math.cos(combinedAngle) // 1 = facing camera (near), -1 = facing away (far)
             let fogOpacity = (1 - facing) / 2 // 0 near, 1 far
@@ -174,6 +271,12 @@ export class MainPage {
         let head = total - 1
         let animating = false
 
+        //Pagination "current / total" — front card's number is total - head (matches the card counter + description)
+        let pagination = this.container.querySelector('.projects-content-pagination')
+        function updatePagination() {
+            if (pagination) pagination.textContent = `${total - head} / ${total}`
+        }
+
         gsap.set(container, { height: cardHeight })
 
 
@@ -212,11 +315,14 @@ export class MainPage {
         }
 
         const introStackReveal = () => {
-            const STACK_SCALE = 0.3
+            const STACK_SCALE = 0.2
             const STACK_FAN_STEP = 12 // px per card while stacked, just enough to read as a deck
-            const STACK_FAN_SCALE_STEP = 0.04 // scale reduction per depth level while stacked
-            const STACK_FAN_DEPTH = 3 // only the front 3 cards fan out, the rest sit underneath the 3rd
-            const STACK_BOTTOM_OFFSET = 1.25 * rootFontSize // 1.25rem gap above the section's top
+            const STACK_FAN_SCALE_STEP = 0.05 // scale reduction per depth level while stacked
+            const STACK_FAN_DEPTH = 4 // only the front 3 cards fan out, the rest sit underneath the 3rd
+            //True VISUAL gap between the deck's bottom edge and the section top (scale-independent now
+            //that stackDropY compensates for center-origin scaling). The cardHeight term reproduces the
+            //original eyeballed position from the 0.3-scale era — tune this line alone to move the deck.
+            const STACK_BOTTOM_OFFSET = 1.25 * rootFontSize + cardHeight * 0.35
 
             let visibleCards = Array.from({ length: VISIBLE_COUNT }, (_, slotIndex) => getCardAtSlot(slotIndex))
             let visibleDescriptions = visibleCards.map(card => card.querySelector('.cards_item-description'))
@@ -234,75 +340,85 @@ export class MainPage {
                 return STACK_SCALE - fanDepth(slotIndex) * STACK_FAN_SCALE_STEP
             }
 
-            //Distance from the cards' natural resting position up to "1.25rem above the section top"
+            //Distance from the cards' natural resting position up to "1.25rem above the section top".
+            //Scale is center-origin, so the VISUAL bottom edge sits cardHeight*(1-scale)/2 above the
+            //unscaled one — compensate, or the gap grows as STACK_SCALE shrinks
             let section = this.projectsSliderContainer.parentElement
+            //console.log(section)
             let sectionTop = section.getBoundingClientRect().top
             let naturalBottom = container.getBoundingClientRect().bottom - sectionTop
-            let stackDropY = -STACK_BOTTOM_OFFSET - naturalBottom
+            let stackDropY = -STACK_BOTTOM_OFFSET - naturalBottom + cardHeight * (1 - STACK_SCALE) / 2
 
-            //x stays fixed at the fanned position for the entire scrub — only phase 2 moves it
+            //x starts at the fanned deck position
             gsap.set(visibleCards, {
                 x: (slotIndex) => fannedStackX(slotIndex),
             })
             gsap.set(visibleDescriptions, { opacity: 0 })
 
-            //Phase 2 — unstack sideways into each card's real slot. Plain, fixed-duration tween,
-            //not scroll-linked. Only runs once phase 1's scrub has (at least started to) settle.
-            //Only touches x + description opacity, so it can't fight with phase 1's y/scale/opacity
-            //even if phase 1's scrub is still finishing its lag catch-up while this plays.
-            let unstackTimeline = gsap.timeline({
-                paused: true,
-                onStart: () => gsap.set(container, { zIndex: 0 }),
-                onComplete: () => {
-                    //Only lock the scrub out once the unstack has actually finished — scrub:1
-                    //lags behind true scroll position by design, so killing it any earlier can
-                    //freeze cards mid-interpolation instead of letting them settle naturally.
-                    dropTimeline.kill()
-                    activateSlider()
-                }
-            })
+            //"SEE OUR PROJECTS" next to the stacked deck — wrapper is the mask, inner text rolls
+            //down into it as soon as the cards start scrolling
+            let stackText = document.createElement('div')
+            stackText.classList.add('stack-side-text')
+            stackText.innerHTML = '<div>SEE OUR<br>PROJECTS</div>'
+            container.append(stackText)
 
-            unstackTimeline.to(visibleCards, {
-                x: (slotIndex) => getSlotPositionX(slotIndex),
-                duration: 1.4,
-                stagger: 0.06,
-                ease: 'power3.out',
-            })
+            //Deck's visual right edge: front card's center + half its scaled width, plus a 1rem gap.
+            //Vertically centered on the deck (scale is center-origin, so the center Y doesn't move)
+            let deckRightX = stackAnchorX + cardWidth / 2 + (cardWidth * STACK_SCALE) / 2 + rootFontSize
+            gsap.set(stackText, { x: deckRightX, y: stackDropY + cardHeight / 2, yPercent: -50 })
 
-            unstackTimeline.to(visibleDescriptions, {
-                opacity: 1,
-                duration: 0.6,
-            }, "<+=0.5")
-
-            //Phase 1 — scrubbed to scroll: drop straight down into resting height while scaling
-            //up (fan-depth scale settling to 1), no horizontal movement. Not killed here — only
-            //once unstackTimeline (above) fully completes.
             let dropTimeline = gsap.timeline({
                 scrollTrigger: {
                     trigger: section,
                     start: 'top bottom',
-                    end: 'top 50%',
-                    scrub: 1,
+                    end: '25% 0%',
+                    scrub: false,
                     once: true,
-                    onLeave: () => { unstackTimeline.play() },
-                    onUpdate: () => {
-                        if (dropTimeline.progress() == 1) {
-                            
-                        }
-                    }
                 }
             })
 
+            //Phase 1 — drop in from above + scale up (per-card fan scale)
+            //Same duration/ease as the x-spread below so drop, scale and unstack all travel together
             dropTimeline.from(visibleCards, {
                 y: stackDropY,
                 scale: (slotIndex) => fannedStackScale(slotIndex),
                 opacity: 1,
-                ease: 'none',
+                duration: 1.6,
+                ease: 'power2.inOut',
                 immediateRender: true,
             })
+
+            //Phase 2 — unstack sideways into the row, played together with phase 1 ("<").
+            //Longer duration = bigger share of the scrubbed scroll distance, so the spread reads slower
+            dropTimeline.to(visibleCards, {
+                onStart: () => gsap.set(container, { zIndex: 0 }),
+                x: (slotIndex) => getSlotPositionX(slotIndex),
+                duration: 1.6,
+                stagger: 0.09,
+                ease: 'power2.inOut',
+            }, "<")
+
+            //Text rolls down into its mask over the first stretch of the scroll
+            dropTimeline.to(stackText.firstChild, {
+                yPercent: 100,
+                ease: 'none',
+                duration: 0.3,
+            }, 0)
+
+            dropTimeline.to(visibleDescriptions, {
+                opacity: 1,
+                duration: 0.6,
+                onStart: () => revealDescriptionBlock(), //desc block rides in with the unstack
+                onComplete: () => {
+                    activateSlider()
+                }
+            }, "<+=0.9") //~35% into the 2.6 unstack — same proportion "<+=0.5" was in the 1.4 era, keeps the snap distance (and so its speed) as before
+
+
         }
 
         introStackReveal()
+        updatePagination()
 
 
         //Slide Left
@@ -326,6 +442,7 @@ export class MainPage {
                 onStart: () => {
                     head = newHead
                     updateDescriptionBlock(head)
+                    updatePagination()
                 }
             })
 
@@ -356,6 +473,7 @@ export class MainPage {
                 onStart: () => {
                     head = newHead
                     updateDescriptionBlock(head)
+                    updatePagination()
                 }
             })
 
@@ -373,55 +491,20 @@ export class MainPage {
         }
 
 
-        //Build Description Blocks
+        //Single Description Block — one instance (the Webflow original), text swapped per project.
+        //No clones: .default-label is static, the title/paragraph get new text, the button gets a new href.
         let descriptionContainer = this.projectsSliderContainer.parentElement.querySelector('.projects_container-description')
         let projectsData = this.projectsData
-        let originalTitle = descriptionContainer?.querySelector('.h3')
-        let originalContent = descriptionContainer?.querySelector('.description_content')
-        let originalLink = descriptionContainer?.querySelector('.default-button')
+        let titleElement = descriptionContainer?.querySelector('.h3')
+        let labelElement = descriptionContainer?.querySelector('.large_paragraph')
+        let linkElement = descriptionContainer?.querySelector('.default-button')
 
-        let descBlocks = []
         let activeDescIndex = head
+        let descSplit = null
+        let descTween = null
 
-        if (descriptionContainer && originalTitle && originalContent && originalLink) {
-            descBlocks = projectsData.map(projectData => {
-                let block = document.createElement('div')
-                block.classList.add('desc-block')
-
-                let title = originalTitle.cloneNode(false)
-                title.textContent = projectData.dummyName
-
-                let content = originalContent.cloneNode(true)
-                content.querySelector('.large_paragraph').textContent = projectData.dummyLabel
-
-                let link = originalLink.cloneNode(true)
-                link.href = projectData.link
-
-                block.append(title, content, link)
-                return block
-            })
-
-            descriptionContainer.innerHTML = ''
-            descBlocks.forEach(descBlock => descriptionContainer.appendChild(descBlock))
-            gsap.set(descBlocks[head], { opacity: 1, pointerEvents: 'auto' })
-        }
-
-
-        function updateDescriptionBlock(newIndex) {
-            if (!descBlocks.length || activeDescIndex === newIndex) return
-
-            let outgoingBlock = descBlocks[activeDescIndex]
-            let incomingBlock = descBlocks[newIndex]
-            let titleElement = incomingBlock.querySelector('.h3')
-            let labelElement = incomingBlock.querySelector('.large_paragraph')
-
-            gsap.set(outgoingBlock.querySelector('.default-button'), { opacity: 0 })
-            gsap.to(outgoingBlock, {
-                opacity: 0, y: 0, duration: 0.25, ease: 'power2.in',
-                onComplete: () => gsap.set(outgoingBlock, { pointerEvents: 'none', y: 0 })
-            })
-
-            //Lock Title to 2 Lines
+        //Lock Title to 2 Lines (word-truncate via binary search)
+        function clampTitle() {
             let lineHeight = parseFloat(getComputedStyle(titleElement).lineHeight)
             let titleHeight = lineHeight * 2 + 6
             titleElement.style.height = titleHeight + 'px'
@@ -437,24 +520,94 @@ export class MainPage {
                 }
                 titleElement.textContent = words.slice(0, lowerBound).join(' ')
             }
+        }
 
-            gsap.set(incomingBlock, { opacity: 1, y: 0, pointerEvents: 'auto' })
-            gsap.set(incomingBlock.querySelector('.default-button'), { opacity: 1 })
+        function setDescriptionContent(index) {
+            let projectData = projectsData[index]
+            titleElement.textContent = projectData.dummyName
+            labelElement.textContent = projectData.dummyLabel
+            linkElement.href = projectData.link
+            clampTitle()
+        }
 
-            let splitTitle = new SplitText(titleElement, { type: 'lines' })
-            let splitLabel = new SplitText(labelElement, { type: 'lines' })
+        if (titleElement && labelElement && linkElement) {
+            setDescriptionContent(head)
+            //Hidden until the cards unstack — revealDescriptionBlock brings it in from the dropTimeline scrub
+            gsap.set(descriptionContainer, { autoAlpha: 0 })
+        }
 
-            gsap.from([...splitTitle.lines.slice(0, 2), ...splitLabel.lines], {
-                y: 16, opacity: 0,
-                duration: 0.5, stagger: 0.07, ease: 'power3.out', delay: 0.2,
-                onComplete: () => {
-                    splitTitle.revert()
-                    splitLabel.revert()
-                    titleElement.style.height = titleHeight + 'px'
-                }
+        //One-shot reveal, fired from the intro scrub while the cards unstack: title + paragraph lines
+        //drop in from the top of their masks, static label and button fade up after.
+        //Also snaps the page slowly onto the section so the intro finishes framed.
+        let lenis = this.lenis
+        let sliderSection = this.container.querySelector('#projects-slider')
+
+        //Bottom text block (counter + blurb + link) reveals together with the description
+        let bottomBlock = this.container.querySelector('.bottom_content-text')
+        let bottomTexts = bottomBlock ? [bottomBlock.querySelector('.bottom_content-number'), bottomBlock.querySelector('.bottom_content-text_container > div')].filter(Boolean) : []
+        let bottomLink = bottomBlock?.querySelector('.link-element')
+        if (bottomBlock) gsap.set(bottomBlock, { autoAlpha: 0 })
+
+        let descRevealed = false
+        function revealDescriptionBlock() {
+            if (descRevealed || !titleElement) return
+            descRevealed = true
+
+            if (lenis && sliderSection) lenis.scrollTo(sliderSection, { duration: 1.2, lock: true })
+
+            gsap.set(descriptionContainer, { autoAlpha: 1 })
+            if (bottomBlock) gsap.set(bottomBlock, { autoAlpha: 1 })
+
+            let split = new SplitText([titleElement, labelElement, ...bottomTexts], { type: 'lines', mask: 'lines' })
+            gsap.from(split.lines, {
+                yPercent: -100,
+                duration: 0.7, stagger: 0.07, ease: 'power2.out',
+                onComplete: () => split.revert()
             })
 
+            let staticLabel = descriptionContainer.querySelector('.default-label')
+            let fadeTargets = [staticLabel, linkElement, bottomLink].filter(Boolean)
+
+            //.link-element has a CSS opacity transition that fights GSAP's per-tick updates
+            //(element lags at ~0 the whole tween) — suspend it while animating, restore for hover
+            gsap.set(fadeTargets, { transition: 'none' })
+            gsap.from(fadeTargets, {
+                autoAlpha: 0, y: 20,
+                duration: 0.6, stagger: 0.08, ease: 'power2.out', delay: 0.2,
+                onComplete: () => gsap.set(fadeTargets, { clearProps: 'transition' })
+            })
+        }
+
+        function updateDescriptionBlock(newIndex) {
+            if (!titleElement || activeDescIndex === newIndex) return
             activeDescIndex = newIndex
+
+            //Interrupted mid-swap — clean up so the re-split starts from natural text
+            if (descTween) descTween.kill()
+            if (descSplit) { descSplit.revert(); descSplit = null }
+
+            //Old text rolls DOWN into the mask, out of sight
+            descSplit = new SplitText([titleElement, labelElement], { type: 'lines', mask: 'lines' })
+            descTween = gsap.to(descSplit.lines, {
+                yPercent: 100,
+                duration: 0.4, stagger: 0.05, ease: 'power2.in',
+                onComplete: () => {
+                    //Nothing visible now — swap the text, then let the new lines drop in from the top
+                    descSplit.revert()
+                    setDescriptionContent(newIndex)
+
+                    descSplit = new SplitText([titleElement, labelElement], { type: 'lines', mask: 'lines' })
+                    descTween = gsap.from(descSplit.lines, {
+                        yPercent: -100,
+                        duration: 0.7, stagger: 0.07, ease: 'power2.out',
+                        onComplete: () => {
+                            descSplit.revert()
+                            descSplit = null
+                            descTween = null
+                        }
+                    })
+                }
+            })
         }
 
     }
@@ -469,7 +622,7 @@ export class MainPage {
         controlsContainer.style.width = this.projectsSliderItemDummy.offsetWidth / rootFontSize + "rem"
         this.projectsSliderItemDummy.remove()
 
-    
+
 
         //Get Data
         let projects = this.dummyProjectsInfo.querySelectorAll('.dummy-projects-info-item')
@@ -551,21 +704,76 @@ export class MainPage {
             //Recalculate height of slider
             slider.style.height = (100 * sliderNewHeight / window.innerHeight) + "vh"
 
-            this.createSlider(slider)
+            let swiper = this.createSlider(slider)
+            let reveal = this.revealFolderContent(folder)
+            let revealed = false
+
+            this.onFolderInView(folder,
+                () => {
+                    if (!revealed) { revealed = true; reveal.play() } //content reveal fires once only
+                    if (swiper) { swiper.slideNext(); swiper.autoplay.start() }
+                },
+                () => { if (swiper) swiper.autoplay.stop() }
+            )
         })
 
+
+        //--top-folder-height is in rem — convert to px via the root font size
+        let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
+        let folderPinHeight = (parseFloat(getComputedStyle(this.servicesFolders[0]).getPropertyValue('--top-folder-height')) || 0) * rootFontSize
+        console.log(folderPinHeight)
 
         // Create a timeline linked to the page scroll
         let servicesTimeline = gsap.timeline({
             scrollTrigger: {
                 trigger: this.foldersWrapper,
-                start: "top 10%",
+                // Trigger top hits 10% of the viewport, offset down by --top-folder-height
+                start: () => `top ${window.innerHeight * 0.1 + folderPinHeight}px`,
                 end: () => `+=${window.innerHeight * 1 * this.servicesFolders.length}`, // Creates the scroll distance
                 scrub: true, // Ties the animation smoothly to the scroll wheel
                 pin: true,   // Pins the wrapper wrapper in place
                 refreshPriority: 2
             }
         });
+
+        //Input-driven folder snap. ScrollTrigger's built-in snap fires only once the scroller stops, and Lenis'
+        //low lerp coasts for a long time — so it snaps late. Instead, step to the next/prev folder on wheel
+        //intent and drive it through Lenis with lock, so a small scroll jumps straight to the next folder.
+        let st = servicesTimeline.scrollTrigger
+        let folderCount = this.servicesFolders.length
+        let lenis = this.lenis
+
+        if (folderCount > 1 && lenis) {
+            const THRESHOLD = 200 // accumulated wheel delta needed before committing a step (higher = less eager)
+            let snapping = false
+            let accum = 0
+            const snapScroll = (i) => st.start + (i / (folderCount - 1)) * (st.end - st.start)
+
+            //Stored on the instance so destroy() can remove it — it lives on window and would
+            //otherwise keep hijacking scroll on other pages after barba swaps the container
+            this.folderWheelHandler = (e) => {
+                if (!st.isActive || snapping) { accum = 0; return }
+
+                accum += e.deltaY
+                if (Math.abs(accum) < THRESHOLD) return // ignore small scrolls
+
+                let dir = Math.sign(accum)
+                accum = 0
+
+                let current = Math.round(st.progress * (folderCount - 1))
+                let next = Math.min(Math.max(current + dir, 0), folderCount - 1)
+                if (next === current) return // at an edge — let the page scroll past normally
+
+                snapping = true
+                lenis.scrollTo(snapScroll(next), {
+                    duration: 1.2,
+                    lock: true, // ignore further scroll input until this settles
+                    onComplete: () => { snapping = false; accum = 0 }
+                })
+            }
+
+            window.addEventListener('wheel', this.folderWheelHandler, { passive: true })
+        }
 
         // Animate each container up into view one by one
         this.servicesFolders.forEach((container, i) => {
@@ -611,12 +819,157 @@ export class MainPage {
                 }
 
             })
+
+            swiper.autoplay.stop() //Off until the folder is in view (see autoplayInView)
+
+            //Click zones on top of the slides: left half = previous, right half = next.
+            //The arrow is a real element following the mouse (CSS cursor images can't be animated
+            //or recolored) — tinted from the folder's sticky-fake-container, popping on click
+            let zones = document.createElement('div')
+            zones.classList.add('slider-nav-zones')
+            zones.innerHTML = '<div class="slider-nav-zone slider-nav-zone--prev"></div><div class="slider-nav-zone slider-nav-zone--next"></div>'
+            swiperElement.append(zones)
+
+            zones.firstChild.addEventListener('click', () => swiper.slidePrev())
+            zones.lastChild.addEventListener('click', () => swiper.slideNext())
+
+            let cursor = document.createElement('div')
+            cursor.classList.add('slider-cursor')
+            cursor.innerHTML = `
+                <svg class="slider-cursor-prev" width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M27 0C12.0883 0 0 12.0883 0 27C0 41.9117 12.0883 54 27 54C41.9117 54 54 41.9117 54 27C54 12.0883 41.9117 0 27 0ZM26.9297 26.0352H35V28.0352H26.9297V32.8096L16.9297 27.0352L26.9297 21.2627V26.0352Z" fill="currentColor"/></svg>
+                <svg class="slider-cursor-next" width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M27 0C41.9117 0 54 12.0883 54 27C54 41.9117 41.9117 54 27 54C12.0883 54 0 41.9117 0 27C0 12.0883 12.0883 0 27 0ZM26.0703 26.0352H18V28.0352H26.0703V32.8096L36.0703 27.0352L26.0703 21.2627V26.0352Z" fill="currentColor"/></svg>
+            `
+            zones.append(cursor)
+
+            //Tint from this folder's sticky-fake-container background
+            let fakeContainer = sliderContainer.closest('.services-sticky-container')?.querySelector('.sticky-fake-container')
+            if (fakeContainer) cursor.style.color = getComputedStyle(fakeContainer).backgroundColor
+
+            let prevIcon = cursor.querySelector('.slider-cursor-prev')
+            let nextIcon = cursor.querySelector('.slider-cursor-next')
+            let moveX = gsap.quickTo(cursor, 'x', { duration: 0.15, ease: 'power2.out' })
+            let moveY = gsap.quickTo(cursor, 'y', { duration: 0.15, ease: 'power2.out' })
+
+            zones.addEventListener('mousemove', (e) => {
+                let rect = zones.getBoundingClientRect()
+                moveX(e.clientX - rect.left)
+                moveY(e.clientY - rect.top)
+
+                let onLeftHalf = e.clientX - rect.left < rect.width / 2
+                prevIcon.style.display = onLeftHalf ? 'block' : 'none'
+                nextIcon.style.display = onLeftHalf ? 'none' : 'block'
+            })
+
+            zones.addEventListener('mouseenter', () => gsap.to(cursor, { autoAlpha: 1, duration: 0.2 }))
+            zones.addEventListener('mouseleave', () => gsap.to(cursor, { autoAlpha: 0, duration: 0.2 }))
+
+            //Pop on click — snap down, ease back (cubic)
+            zones.addEventListener('click', () => {
+                gsap.fromTo(cursor, { scale: 0.8 }, { scale: 1, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
+            })
+
+            return swiper
         }
 
+        return null
+    }
+
+    //Fire onEnter/onLeave when a folder crosses into/out of view (lower threshold = fires earlier)
+    onFolderInView(folder, onEnter, onLeave, threshold = 0.2) {
+        const THRESHOLD = threshold
+        let active = false
+
+        let observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                let inView = entry.intersectionRatio >= THRESHOLD
+                if (inView && !active) {
+                    active = true
+                    onEnter && onEnter()
+                } else if (!inView && active) {
+                    active = false
+                    onLeave && onLeave()
+                }
+            })
+        }, { threshold: [THRESHOLD] })
+
+        observer.observe(folder)
+    }
+
+    //Reusable folder-content reveal — returns a paused timeline (copy this to services.js). Text elements
+    //reveal line-by-line up from a mask; buttons + tags fade/move up. Everything on cubic (power2) easing.
+    revealFolderContent(folder) {
+        gsap.registerPlugin(SplitText)
+
+        let ease = 'power2.out' // cubic
+        let tl = gsap.timeline({ paused: true })
+
+        //Masked line reveals — short headline-type elements only (rich body text masks badly with its leading)
+        let maskTargets = [
+            folder.querySelector('.service-content-name'),
+            folder.querySelector('.service-count-number'),
+            folder.querySelector('.service-count-label'),
+        ].filter(Boolean)
+
+        if (maskTargets.length) {
+            let split = new SplitText(maskTargets, { type: 'lines', mask: 'lines', linesClass: 'reveal-line' })
+            tl.from(split.lines, {
+                yPercent: 100,
+                duration: 0.8,
+                stagger: 0.05,
+                ease
+            })
+        }
+
+        //Rich body text — line-by-line fade + up, no mask (avoids the leading/clip issues)
+        let rich = folder.querySelector('.service-content-rich')
+        if (rich) {
+            let richSplit = new SplitText(rich, { type: 'lines' })
+            tl.from(richSplit.lines, {
+                autoAlpha: 0,
+                y: 20,
+                duration: 0.6,
+                stagger: 0.05,
+                ease
+            }, '<')
+        }
+
+        //Slider — slight fade + move up
+        let sliderEl = folder.querySelector('.service-content-slider')
+        if (sliderEl) {
+            tl.from(sliderEl, { autoAlpha: 0, y: 20, duration: 0.6, ease }, '<')
+        }
+
+        //Buttons — fade + move up
+        let buttons = folder.querySelector('.service-content-buttons')
+        if (buttons) {
+            tl.from(buttons, { autoAlpha: 0, y: 20, duration: 0.6, ease }, '<0.2')
+        }
+
+        //Tags — the finale: fade + move up, staggered, after everything else so it's still playing when the folder lands
+        let tags = folder.querySelectorAll('.service-tags-container > *')
+        if (tags.length) {
+            tl.from(tags, { autoAlpha: 0, y: 20, duration: 0.6, stagger: 0.08, ease }, '>-0.2')
+        }
+
+        return tl
     }
 
     run() {
         this.runningLineTimeline.play()
+    }
+
+    //Called from barba beforeLeave. Kills everything that would outlive the container:
+    //the window-level wheel snap and every ScrollTrigger anchored inside this page —
+    //orphaned STs recalc against the detached container and hijack scroll on other pages
+    destroy() {
+        if (this.folderWheelHandler) window.removeEventListener('wheel', this.folderWheelHandler)
+
+        ScrollTrigger.getAll().forEach((st) => {
+            if (st.trigger && this.container.contains(st.trigger)) st.kill()
+        })
+
+        this.eventSliderTimeline.kill()
+        this.runningLineTimeline.kill()
     }
 
 }

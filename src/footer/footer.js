@@ -1,4 +1,6 @@
 import AirDatepicker from 'air-datepicker'
+import SlimSelect from 'slim-select'
+import 'slim-select/styles' // css
 import localeEn from 'air-datepicker/locale/en'
 import 'air-datepicker/air-datepicker.css'
 
@@ -17,6 +19,14 @@ export class Footer {
 
     setup(lenis) {
         this.lenis = lenis
+
+        new SlimSelect({
+            select: '#feedback',
+            settings: {
+                placeholderText: 'SELECT OPTION',
+                showSearch: false
+            }
+        })
 
         this.footerTimeline.to(this.footerLogoInstance, {
             scrollTrigger: {

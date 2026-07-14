@@ -47,8 +47,7 @@ export class RosterToArtistTransition {
         try {
             let header = data.querySelector('.artist-content-container-header')
             let text = data.querySelector('.artist-content-container-text')
-            let counters = data.querySelectorAll('.artist-content-container-bottom-counters-item')
-            let link = data.querySelector('.link-element')
+            let link = data.querySelectorAll('.default-button')
             let tags = data.querySelector('.artist-specialty-tags')
 
             let splitHeader = SplitText.create(header, { type: "words" })
@@ -85,29 +84,11 @@ export class RosterToArtistTransition {
                 filter: "blur(0px)",
             })
 
-
-            gsap.from(counters, {
-                autoAlpha: 0,
-                y: -10,
-                stagger: 0.3
-            })
-
-            gsap.fromTo(counters, {
-                filter: "blur(7px)",
-            }, {
-                filter: "blur(0px)",
-            })
-
             gsap.from(link, {
                 autoAlpha: 0,
                 y: -10
             })
 
-            gsap.fromTo(link, {
-                filter: "blur(7px)",
-            }, {
-                filter: "blur(0px)",
-            })
 
             gsap.from(tags, {
                 autoAlpha: 0,
