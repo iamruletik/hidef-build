@@ -86,7 +86,7 @@ export class Disco {
         this.camera.lookAt(0, 0, 0)
 
         this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1))
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping
         this.renderer.toneMappingExposure = 1.2
         this.renderer.setClearColor(0x000000, 0)
