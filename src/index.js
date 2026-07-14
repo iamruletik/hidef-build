@@ -27,7 +27,6 @@ import { ArtistPage } from './roster/artist'
 import { RosterToArtistTransition } from './roster/inTransition'
 import { ArtistToRosterTransition } from './roster/outTransition'
 import createNoise from './noise/noise'
-import { unwarpImages } from './imagefx/unwarp'
 import headerInit from './header/header'
 import projectInit from './archive/project'
 import { MainPage } from './main/main'
@@ -358,12 +357,6 @@ barba.hooks.beforeEnter(() => {
     lenis.scrollTo(0, { immediate: true })
 })
 
-//Register the new page's images for the reveal unwarp — after the transition, so bursts
-//aren't wasted behind the overlay
-barba.hooks.after((data) => {
-    unwarpImages(data.next.container)
-})
-
 //The floating image wrapper is shared across roster<->artist — remove it when leaving that pair for anything else
 barba.hooks.beforeLeave((data) => {
     let rosterPages = ['roster', 'artist']
@@ -465,7 +458,7 @@ async function downloadDiscoModel(url) {
             console.log('GLTF is Downloaded')
             const data = await response.arrayBuffer()
             const scene = await discoball.loadModel(data)
-            preloader.finish(() => { lenis.start(); playInitialPageReveal(); unwarpImages() })
+            preloader.finish(() => { lenis.start(); playInitialPageReveal(); })
             discoball.run(scene.children[0])
 
             //Position the ball for the initial page now that it's rendered (subpages start at the header)
