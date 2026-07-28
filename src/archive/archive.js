@@ -1,6 +1,9 @@
-export class ArchivePage {
+import { BasePage } from '../core/BasePage'
+
+export class ArchivePage extends BasePage {
 
     constructor(barbaContainer) {
+        super(barbaContainer)
         this.projectsArray = barbaContainer.querySelectorAll('.project-content')
         this.dummyBox = barbaContainer.querySelector('.projects-dummy')
         this.dummyDesign = barbaContainer.querySelector('#design-dummy')
@@ -16,13 +19,7 @@ export class ArchivePage {
 
         this.dummyDesign.remove()
 
-        console.log(barbaContainer)
-
-        
-
         this.projectsArray.forEach((project) => {
-
-            
 
             let categories = project.querySelectorAll('.project-category')
             let categoriesData = []
@@ -83,8 +80,6 @@ export class ArchivePage {
 
         this.projectsData.forEach((project) => {
 
-            console.log(this.projectsData)
-
             project.categoryId.forEach((item) => {
 
 
@@ -103,7 +98,7 @@ export class ArchivePage {
                                         </div>
                                     `
 
-                let categoryDiv = this.listElement.querySelector(`#${item}`)
+                let categoryDiv = this.listElement.querySelector(`[id="${item}"]`)
                 let contentDiv = categoryDiv.querySelector('.archive-content-projects-list-content')
 
                 contentDiv.append(projectDiv)

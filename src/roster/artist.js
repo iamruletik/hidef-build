@@ -1,13 +1,15 @@
+import { BasePage } from '../core/BasePage'
+import { createFloatingCursor } from '../core/sliderCursor'
 import Swiper from 'swiper';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
-export class ArtistPage {
+export class ArtistPage extends BasePage {
 
     constructor(barbaContainer) {
-        this.container = barbaContainer
+        super(barbaContainer)
         this.rosterItemsSelector = '.roster-list-table-content-item'
         this.rosterImagesSelector = '.roster-list-table-content-item-image'
         this.floatingWrapper = document.querySelector('.roster-floating-image-wrapper')
@@ -15,11 +17,17 @@ export class ArtistPage {
     }
 
     setup() {
-
+        //Not wrapped in this.ctx.add() — everything here (and in createFloatingContainer/
+        //createSlider) targets the persistent floating wrapper, which survives roster<->artist
+        //navigation. Reverting it on this page's own destroy() would strip its positioning
+        //mid-transition. Its lifecycle is handled separately in index.js
         if (!this.floatingWrapper) {
             this.createFloatingContainer()
             this.createSlider(this.floatingWrapper, this.imagesContainer)
         }
+
+        //Custom slider cursor is on for the artist page (single visible slider), off for roster
+        if (this.floatingWrapper._cursorZones) this.floatingWrapper._cursorZones.style.pointerEvents = 'auto'
     }
 
     createFloatingContainer() {
@@ -35,6 +43,9 @@ export class ArtistPage {
         wrapper.append(container)
         document.body.prepend(wrapper)
         this.floatingWrapper = wrapper
+
+        //One shared cursor inside the container, driving whichever slider is active
+        wrapper._cursorZones = createFloatingCursor(container)
 
     }
 
@@ -114,6 +125,15 @@ export class ArtistPage {
                 }
 
             })
+
+            //Lives in the floating wrapper, which survives roster<->artist navigation — tracked on
+            //the wrapper itself (not this.addSwiper) so it isn't destroyed by this page's own teardown.
+            //Actually destroyed in index.js's shared floating-wrapper cleanup
+            this.floatingWrapper._swipers = this.floatingWrapper._swipers || []
+            this.floatingWrapper._swipers.push(swiper)
+
+            //So the shared cursor can drive this slider when it's the active one
+            sliderWrapper._swiper = swiper
         }
 
     }

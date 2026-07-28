@@ -5,6 +5,8 @@
 //OFF SWITCH: set ENABLED = false. Full removal: delete this file + its import/calls in index.js.
 //Per-image opt-out: class "no-unwarp".
 
+import { gsap } from '../core/gsap'
+
 const ENABLED = false
 const DISPLACEMENT = 20      //px of warp at burst start — keep slight
 const DURATION = 1

@@ -2,6 +2,11 @@ body {
   overflow-x: hidden;
 }
 
+p {
+  margin-top: 0;
+  margin-bottom: 0.3em;
+}
+
 .hide {
   opacity: 1 !important;
 }
@@ -76,6 +81,13 @@ body {
 
 .sticky_container {
   filter: url('#goo');
+}
+
+/* Safari (Apple WebKit) — the #goo SVG filter is a compositor hog here; drop it (.is-safari set in index.js) */
+.is-safari .sticky_container,
+.is-safari .default-button,
+.is-safari .sticky-fake-container {
+  filter: none;
 }
 
 #dj-music-direction:before {
@@ -367,7 +379,8 @@ body {
   left: 0;
   width: 54px;
   height: 54px;
-  margin: -27px 0 0 -27px; /* center on the mouse point */
+  margin: -27px 0 0 -27px;
+  /* center on the mouse point */
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -462,15 +475,23 @@ input:checked+.w-form-label {
   mask-position: left;
 }
 
+@media screen and (max-width: 991px) {
+
+  .hidef-logo-threshold {
+    -webkit-mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a68815201c5c14c1db66f60_mobile-logo.svg");
+    mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a68815201c5c14c1db66f60_mobile-logo.svg");
+  }
+
+}
 
 .logo-description-threshold {
-    /* per-pixel threshold of whatever is rendered behind this box */
+  /* per-pixel threshold of whatever is rendered behind this box */
   backdrop-filter: grayscale(1) invert(1) contrast(1000);
   -webkit-backdrop-filter: grayscale(1) invert(1) contrast(1000);
 
   /* confine the filtered box to the logo silhouette */
-  -webkit-mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a54f8d605dc14cb9bea611a_svgviewer-output.svg");
-  mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a54f8d605dc14cb9bea611a_svgviewer-output.svg");
+  -webkit-mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a60f298c4b7d0f259c39d6c_svgviewer-output.svg");
+  mask-image: url("https://cdn.prod.website-files.com/69976b0d03fbc5565b9d5752/6a60f298c4b7d0f259c39d6c_svgviewer-output.svg");
   -webkit-mask-size: contain;
   mask-size: contain;
   -webkit-mask-repeat: no-repeat;
@@ -478,6 +499,7 @@ input:checked+.w-form-label {
   -webkit-mask-position: left;
   mask-position: left;
 }
+
 
 
 /* SplitText masked line reveals (service folder content).

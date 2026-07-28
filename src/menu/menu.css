@@ -20,4 +20,5 @@
     line-height: 1;
     padding-top: 0.125rem;
     content: "0" counter(menu-large-link);
+    opacity: var(--arrow-o, 0);
 }

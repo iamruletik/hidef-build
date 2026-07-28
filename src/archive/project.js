@@ -1,7 +1,10 @@
-export class ProjectPage {
+import { gsap } from '../core/gsap'
+import { BasePage } from '../core/BasePage'
+
+export class ProjectPage extends BasePage {
 
   constructor(barbaContainer) {
-    this.container = barbaContainer
+    super(barbaContainer)
     this.progressBarElement = this.container.querySelector('.project-progress-bar')
     this.progressBarNumber = this.container.querySelector('.project-progress-bar-number')
     this.projectSummaryTeamContainer = this.container.querySelector('.project-summary-team')
@@ -12,32 +15,34 @@ export class ProjectPage {
   }
 
   setup() {
+    this.ctx.add(() => {
 
-    document.addEventListener("scroll", (event) => {
+      this.addListener(document, "scroll", (event) => {
 
-      let progress = gsap.utils.mapRange(window.innerHeight, this.projectWrapper.scrollHeight - window.innerHeight, 100, 0, window.scrollY + window.innerHeight)
+        let progress = gsap.utils.mapRange(window.innerHeight, this.projectWrapper.scrollHeight - window.innerHeight, 100, 0, window.scrollY + window.innerHeight)
 
-      this.progressBarElement.style.transform = "translate(-" + progress + "%)"
+        this.progressBarElement.style.transform = "translate(-" + progress + "%)"
 
-      let percent = Math.abs(Math.round(progress - 100))
-      if (percent <= 100) { this.progressBarNumber.innerText = percent + "%" }
+        let percent = Math.abs(Math.round(progress - 100))
+        if (percent <= 100) { this.progressBarNumber.innerText = percent + "%" }
 
-    })
+      })
 
-    this.restyleCredits(this.projectSummaryTeamContainer)
+      this.restyleCredits(this.projectSummaryTeamContainer)
 
-    this.runAltTextLogic()
-
-    // 2. Watch for missing images to drop in dynamically
-    this.observer = new MutationObserver(() => {
       this.runAltTextLogic()
-    })
 
-    this.observer.observe(this.container, {
-      childList: true,
-      subtree: true
-    })
+      // 2. Watch for missing images to drop in dynamically
+      this.observer = this.addObserver(new MutationObserver(() => {
+        this.runAltTextLogic()
+      }))
 
+      this.observer.observe(this.container, {
+        childList: true,
+        subtree: true
+      })
+
+    })
   }
 
   restyleCredits(richtextSelector) {
@@ -171,13 +176,6 @@ export class ProjectPage {
 
     // Stop observing once all 16 expected images are loaded and processed
     if (containers.length >= 16 && this.observer) {
-      this.observer.disconnect()
-    }
-  }
-
-  // Mandatory for Barba: Call this to prevent memory leaks when leaving the page
-  destroy() {
-    if (this.observer) {
       this.observer.disconnect()
     }
   }

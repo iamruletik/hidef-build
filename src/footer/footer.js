@@ -1,3 +1,4 @@
+import { gsap, ScrollTrigger } from '../core/gsap'
 import AirDatepicker from 'air-datepicker'
 import SlimSelect from 'slim-select'
 import 'slim-select/styles' // css
@@ -93,7 +94,7 @@ export class Footer {
             let element = document.createElement('a')
             element.classList.add('link-element')
             element.href = url
-            element.innerHTML = `<div>${name}</div`
+            element.innerHTML = `<div>${name}</div>`
 
 
             columnRight.append(element)

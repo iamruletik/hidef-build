@@ -1,3 +1,6 @@
+import { gsap, SplitText } from '../core/gsap'
+import { BasePage } from '../core/BasePage'
+import { createFloatingCursor } from '../core/sliderCursor'
 import Swiper from 'swiper';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -5,10 +8,10 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
 
-export class RosterPage {
+export class RosterPage extends BasePage {
 
     constructor(barbaContainer) {
-        this.container = barbaContainer
+        super(barbaContainer)
         this.rosterItemsSelector = '.roster-list-table-content-item'
         this.rosterImagesSelector = '.roster-list-table-content-item-image'
         this.floatingWrapper = document.querySelector('.roster-floating-image-wrapper')
@@ -17,11 +20,18 @@ export class RosterPage {
     }
 
     setup() {
-
+        //Not wrapped in this.ctx.add() — createFloatingContainer's gsap.set and showSpecificImage's
+        //hover tweens all target the persistent floating wrapper, which survives roster<->artist
+        //navigation. Reverting them on this page's own destroy() would strip that wrapper's
+        //positioning mid-transition. Its lifecycle is handled separately in index.js
         this.createFloatingContainer()
         this.createSliders(this.floatingWrapper, this.rosterItemsSelector, this.rosterImagesSelector)
         this.showSpecificImage(this.rosterItemsSelector)
 
+        //Roster shares the floating wrapper with the artist page, so the cursor node may already exist —
+        //keep it off here (the artist page turns it on). Off = native cursor + no interference with the
+        //roster list's own hover-to-show-image
+        if (this.floatingWrapper._cursorZones) this.floatingWrapper._cursorZones.style.pointerEvents = 'none'
     }
 
     createFloatingContainer() {
@@ -41,6 +51,9 @@ export class RosterPage {
             wrapper.append(container)
             document.body.prepend(wrapper)
             this.floatingWrapper = wrapper
+
+            //One shared cursor inside the container, driving whichever slider is active (off on roster)
+            wrapper._cursorZones = createFloatingCursor(container)
 
 
             let finPos = this.dummy.getBoundingClientRect()
@@ -73,7 +86,7 @@ export class RosterPage {
             let slider = this.floatingWrapper.querySelector(`[data-artist-name="${artistName}"]`)
             //console.log(slider)
 
-            artist.addEventListener('mouseenter', (e) => {
+            this.addListener(artist, 'mouseenter', (e) => {
 
                 //let contPos = sliderContainer.getBoundingClientRect()
                 let yMov = artist.getBoundingClientRect().top / 2
@@ -100,7 +113,7 @@ export class RosterPage {
 
             }, true)
 
-            artist.addEventListener('mouseleave', (e) => {
+            this.addListener(artist, 'mouseleave', (e) => {
 
                 gsap.set(slider, { zIndex: 1 })
                 gsap.to(slider, { duration: 0.3, autoAlpha: 0, overwrite: true })
@@ -218,6 +231,15 @@ export class RosterPage {
                 }
 
             })
+
+            //Lives in the floating wrapper, which survives roster<->artist navigation — tracked on
+            //the wrapper itself (not this.addSwiper) so it isn't destroyed by this page's own teardown.
+            //Actually destroyed in index.js's shared floating-wrapper cleanup
+            this.floatingWrapper._swipers = this.floatingWrapper._swipers || []
+            this.floatingWrapper._swipers.push(swiper)
+
+            //So the shared cursor can drive this slider when it's the active one
+            sliderWrapper._swiper = swiper
         }
 
     }

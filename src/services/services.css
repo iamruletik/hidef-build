@@ -1,7 +1,7 @@
   .services-headline-category {
     overflow: hidden;
   }
-  
+
   .services-headline-category div::before {
     content: "(0" counter(service) ") ";
   }
@@ -23,7 +23,7 @@
   .services-sticky-container {
     --top-sticky-margin: 8em;
     --top-folder-height: 3em;
-    --service-folder-padding: 1.25rem;
+    --service-folder-padding: 2em;
     --services-folder-quantity: 6;
     --service-folder-width: calc(100vw / var(--services-folder-quantity) - var(--service-folder-padding) * 2);
     counter-increment: service-category;
@@ -34,11 +34,33 @@
     /*top: var(--top-sticky-margin);*/
   }
 
+  @media (max-width: 1440px) {
+
+    .services-sticky-container {
+      --top-sticky-margin: 8em;
+      --top-folder-height: 3em;
+      --service-folder-padding: 1rem;
+      --services-folder-quantity: 6;
+    }
+
+    .service-content {
+      padding-bottom: calc(var(--service-folder-padding) * 2 + var(--top-folder-height));
+    }
+
+  }
+
   .service-content {
     height: 90vh;
     padding-bottom: calc(var(--service-folder-padding) + var(--top-folder-height));
     /*contain: paint;*/
     overflow: hidden;
+  }
+
+  @media (max-width: 1440px) {
+    .service-content {
+      padding-bottom: calc(var(--service-folder-padding) * 2 + var(--top-folder-height));
+    }
+
   }
 
   .services-sticky-container:nth-child(1) {
@@ -88,23 +110,40 @@
   .sticky-fake-container::before {
     content: "0" counter(service-category) " " attr(data-category-name);
     position: absolute;
-    display: flex;
-    justify-content: left;
-    align-items: center;
+    display: block;
     width: var(--service-folder-width);
     height: var(--top-folder-height);
+    line-height: var(--top-folder-height);
+    /* vertically centers the single line (was flex align-items) */
     top: calc(var(--top-folder-height) * -1);
     left: calc(calc(var(--service-folder-width) + var(--service-folder-padding) * 2) * calc(var(--i) - 1));
     padding-left: var(--service-folder-padding);
-    padding-right: var(--service-folder-padding);
+    padding-right: calc(var(--service-folder-padding) + 2em);
     font-variation-settings: "wght" 350, "wdth" 75;
     text-transform: uppercase;
     font-family: Martian Mono, Arial, sans-serif;
     font-size: .875rem;
-    line-height: 1;
     background-color: inherit;
     color: inherit;
     clip-path: polygon(0 0, 80% 0, 100% 100%, 0 100%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 768–1280: label too tight for the name — show only the counter */
+  @media (max-width: 1280px) {
+    .sticky-fake-container::before {
+      content: "0" counter(service-category);
+    }
+  }
+
+  /* ≤767: 1/3-screen label, dropped back to its container's left edge */
+  @media (max-width: 767px) {
+    .sticky-fake-container::before {
+      width: calc(100vw / 3);
+      left: 0;
+    }
   }
 
   .service-content-name {

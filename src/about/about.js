@@ -1,6 +1,10 @@
-export class AboutPage {
+import { gsap } from '../core/gsap'
+import { BasePage } from '../core/BasePage'
 
-    constructor() {
+export class AboutPage extends BasePage {
+
+    constructor(barbaContainer) {
+        super(barbaContainer)
         this.video = document.querySelector(".experience-content-video-container")
         this.experienceContent = document.querySelector(".experience-content")
         this.mainContainer = document.querySelector(".about-content-wrapper")
@@ -8,32 +12,37 @@ export class AboutPage {
         this.wheelSvg = document.querySelector(".wheel-svg")
         this.bigImage = document.querySelector(".quality-content-image")
         this.bigImageWrapper = document.querySelector(".quality-content-wrapper")
-        this.videoTimeline = gsap.timeline({
-            scrollTrigger: {
-                trigger: this.experienceContent,
-                scrub: true,
-                start: "top top",
-                end: "bottom bottom",
-                //markers: true
-            }
-        })
-        this.wheelTimeline = gsap.timeline({
-            scrollTrigger: {
-                trigger: this.wheelContainer,
-                scrub: true,
-                start: "top bottom",
-                end: "bottom bottom",
-                //markers: true
-            }
-        })
-        this.bigImageTimeline = gsap.timeline({
-            scrollTrigger: {
-                trigger: this.bigImageWrapper,
-                scrub: true,
-                start: "top center",
-                end: "bottom bottom",
-                //markers: true
-            }
+
+        //Wrapped in ctx.add so gsap.context actually tracks these — they're built here in the
+        //constructor rather than setup(), which is the one place ctx.add can't just wrap a whole method
+        this.ctx.add(() => {
+            this.videoTimeline = gsap.timeline({
+                scrollTrigger: {
+                    trigger: this.experienceContent,
+                    scrub: true,
+                    start: "top top",
+                    end: "bottom bottom",
+                    //markers: true
+                }
+            })
+            this.wheelTimeline = gsap.timeline({
+                scrollTrigger: {
+                    trigger: this.wheelContainer,
+                    scrub: true,
+                    start: "top bottom",
+                    end: "bottom bottom",
+                    //markers: true
+                }
+            })
+            this.bigImageTimeline = gsap.timeline({
+                scrollTrigger: {
+                    trigger: this.bigImageWrapper,
+                    scrub: true,
+                    start: "top center",
+                    end: "bottom bottom",
+                    //markers: true
+                }
+            })
         })
     }
 

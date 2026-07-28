@@ -1,3 +1,5 @@
+import { gsap } from '../core/gsap'
+
 const RATIO = 170 / 260, H_FACTOR = 0.20
 
 export class Preloader {

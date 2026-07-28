@@ -1,5 +1,7 @@
+import { gsap, ScrollTrigger } from './core/gsap'
+import { createViews } from './core/PageRegistry'
 import barba from '@barba/core'
-import discomodel from './glb/discoball_compressed.glb'
+import discomodel from './glb/discoball_compressed_new.glb'
 import hdri from './glb/output_lowres.hdr'
 import './fluid.css'
 import './general.css'
@@ -32,13 +34,7 @@ import projectInit from './archive/project'
 import { MainPage } from './main/main'
 import { Disco } from './main/discoball'
 import { Footer } from './footer/footer'
-import './footer/footer.css'    
-
-
-//Footer Color Change
-function setFooterColor(color) {
-    document.documentElement.style.setProperty('--footer-color', color)
-}
+import './footer/footer.css'
 
 
 // Don't let the browser restore scroll on reload/back — we control it
@@ -67,12 +63,20 @@ window.addEventListener('load', () => {
 
 // Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 lenis.on('scroll', ScrollTrigger.update)
-gsap.ticker.add((time) => { lenis.raf(time * 1000)  })
+gsap.ticker.add((time) => { lenis.raf(time * 1000) })
 gsap.ticker.lagSmoothing(0)
 
 
 headerInit(lenis)
-createNoise()
+
+//Apple WebKit gate — navigator.vendor is the most stable "is this Safari's engine" signal (not UA-spoofable;
+//'Apple Computer, Inc.' only on macOS/iOS/iPadOS Safari, and on iOS all browsers are WebKit anyway, which is
+//what we want gated). Tags <html> so CSS can drop the #goo SVG filter, and skips the always-on noise loop —
+//both are expensive on WebKit's compositor
+let isSafari = navigator.vendor === 'Apple Computer, Inc.'
+if (isSafari) document.documentElement.classList.add('is-safari')
+
+if (!isSafari) createNoise() //noise canvas hammers putImageData 24fps — off on Safari
 
 //Preloader
 let preloader = new Preloader()
@@ -124,12 +128,7 @@ document.addEventListener('menuOpened', () => {
     discoball.animateToMenu(menuTimeline)
     toggleStackedSliderCards(0)
 
-    let runningLine = document.querySelector('.running_line')
-    if (runningLine) {
-        runningLineMenuTl = gsap.timeline()
-        runningLineMenuTl.to(runningLine.querySelectorAll('.char-svg'), { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
-        runningLineMenuTl.to(runningLine.querySelectorAll('.icon-svg'), { autoAlpha: 0 }, "<")
-    }
+    runningLineMenuTl = animateRunningLine(document.querySelector('.running_line'), 'hide')
 
     console.log('Menu Opened')
 })
@@ -140,12 +139,105 @@ document.addEventListener('menuClosed', () => {
     console.log('Menu Closed')
 })
 
+//Navigating away: the destination page's own transition (animateToHeader/setToHeader, or main's
+//home-scrub) repositions the ball right after this anyway — reversing menuTimeline first just races
+//against it for the full ~1s reverse (this was the main-departure bug: ball visibly snapped between
+//the two, running line flashed back in only to vanish again). Freeze instead of animating back —
+//whatever comes next just picks up from wherever the ball is already sitting
+document.addEventListener('menuNavigatingClose', () => {
+    if (menuTimeline) menuTimeline.pause().kill()
+})
+
 let defaultTransititonContainer = createTransitionContainer()
 
-//Create Main View
-let home
+let { views: pageViews, instances: pageInstances } = createViews([
+    {
+        //MAIN PAGE
+        namespace: 'main',
+        footerColor: '#FF383C',
+        mountOn: 'beforeEnter',
+        create: (data) => {
+            let page = new MainPage(data.next.container, lenis)
+            page.setup()
+            return page
+        },
+        onAfterEnter: (data, instance) => {
+            //Everything that should be SEEN happens in the ball-intro's onComplete — i.e. the moment
+            //the cover comes off. The `after` hook runs while the cover is still up and it stays up for
+            //the whole 1.5s ball intro, so revealing there just burns the animation behind the cover
+            discoball.scrollHomeAnimation(() => {
+                defaultTransititonContainer.remove()
+                defaultTransititonContainer = createTransitionContainer()
 
+                //footer.update() is a ScrollTrigger.refresh() — MUST happen here, not in the after hook.
+                //A refresh while the cover is up re-evaluates the stacked-cards intro trigger and can
+                //fire its drop/unstack behind the cover (that's the "cards just appear" bug). Deferred
+                //to now, cover off + layout final, so the intro plays visibly on lift or waits for scroll
+                footer.update()
 
+                gsap.set(data.next.container, { autoAlpha: 1 })
+                instance.run()
+                //First load's running line is revealed by the preloader — only reveal here on an actual
+                //navigation, else the two stack (preloader rolls chars in, then this .from snaps them
+                //back to hidden and re-staggers)
+                if (data.current && data.current.namespace) {
+                    animateRunningLine(data.next.container.querySelector('.running_line'), 'reveal')
+                }
+                instance.revealHeroBottom()
+            })
+        },
+        onBeforeLeave: () => {
+            let ballToHeader = discoball.destroyHomeAnimation()
+
+            let runningLine = document.querySelector('.running_line')
+            if (!runningLine) return
+
+            //Hide animation plays RIGHT AWAY (same as clicking the menu) — not delayed until the ball
+            //reaches the header
+            animateRunningLine(runningLine, 'hide')
+
+            //z-index is the ONLY thing tied to the ball reaching the header — the running line renders
+            //above the ball, so drop it below the cover (9996) right before the cover appears (which is
+            //right after the ball settles into header pose, see leave()'s startCover)
+            ballToHeader.then(() => { runningLine.style.zIndex = 9995 })
+        }
+    },
+    { namespace: 'roster', PageClass: RosterPage, footerColor: '#FF383C' },
+    { namespace: 'archive', PageClass: ArchivePage, footerColor: '#A7CEED' },
+    { namespace: 'project', PageClass: ProjectPage, footerColor: '#A7CEED' },
+    { namespace: 'about', PageClass: AboutPage, footerColor: '#FCB8FA' },
+    {
+        //SERVICES PAGE
+        namespace: 'services',
+        footerColor: '#FF383C',
+        mountOn: 'beforeEnter',
+        //create factory (not PageClass) so lenis can be passed — the shared folder snap needs it
+        create: (data) => {
+            let page = new ServicePage(data.next.container, lenis)
+            page.setup()
+            return page
+        },
+        onAfterEnter: () => footer.update()
+    },
+    { namespace: 'artist', PageClass: ArtistPage, footerColor: '#FF383C' },
+    { namespace: 'privacy', footerColor: '#FF383C' }
+])
+
+//Reset scroll to the top on every barba navigation, before the new page renders. Registered BEFORE
+//barba.init() so it fires ahead of any view's own beforeEnter (e.g. MainPage's setup(), which measures
+//layout/creates ScrollTriggers against the CURRENT scroll position) — same-name hooks fire in
+//registration order, so this being registered later meant pages could measure against stale scroll
+//left over from the previous page, causing scroll-triggered reveals to snap instead of animate
+barba.hooks.beforeEnter((data) => {
+    lenis.scrollTo(0, { immediate: true })
+
+    //Hide main's incoming container while the ball does its 1.5s intro — the running line sits above
+    //the transition cover, so its at-rest state would show before its reveal. Shown again at cover-lift
+    //(onAfterEnter). Navigation only — first load has no data.current and is handled by the preloader
+    if (data.current && data.current.namespace && data.next.namespace === 'main') {
+        gsap.set(data.next.container, { autoAlpha: 0 })
+    }
+})
 
 //Transitions Setup
 barba.init({
@@ -169,7 +261,12 @@ barba.init({
             leave(data) {
                 console.log("LEAVING ROSTER")
                 lenis.scrollTo(0, { immediate: true })
-                discoball.setToHeader()
+                discoball.animateToHeader()
+                //No overlay here to hide behind — if the menu triggered this, its container needs to
+                //actually play its close animation now, not stay held open waiting for a cover
+                document.dispatchEvent(new CustomEvent('menuAnimatedClose'))
+                //No cover to hide behind either way — safe to destroy the outgoing page right away
+                document.dispatchEvent(new CustomEvent('safeToDestroy'))
             },
             after(data) {
                 console.log("ENTERING ARTIST")
@@ -189,7 +286,12 @@ barba.init({
             leave(data) {
                 console.log("LEAVING ARTIST")
                 lenis.scrollTo(0, { immediate: true })
-                discoball.setToHeader()
+                discoball.animateToHeader()
+                //No overlay here to hide behind — if the menu triggered this, its container needs to
+                //actually play its close animation now, not stay held open waiting for a cover
+                document.dispatchEvent(new CustomEvent('menuAnimatedClose'))
+                //No cover to hide behind either way — safe to destroy the outgoing page right away
+                document.dispatchEvent(new CustomEvent('safeToDestroy'))
             },
             after(data) {
                 console.log("ENTERING ROSTER")
@@ -206,24 +308,36 @@ barba.init({
                 console.log("BEFORE LEAVE")
                 console.log(data)
             },
+            //Overlay covers the screen HERE, while the old container is still mounted and visible —
+            //so the user sees the transition cover immediately on click, never a bare/stuck old page.
+            //sync:false means barba waits for this promise before removing the old container, so it's
+            //already hidden behind the overlay by the time that happens
             leave(data) {
-                console.log("LEAVE")
-                toggleStackedSliderCards(0)
-                lenis.scrollTo(0, { immediate: true })
+                return new Promise(resolve => {
+                    console.log("LEAVE")
+                    toggleStackedSliderCards(0)
+                    //Next page name set before the cover finishes, so it's already correct once revealed
+                    let text = document.querySelector(".transition-container-content-text")
+                    text.innerText = data.next.namespace.toUpperCase()
+
+                    let startCover = () => leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
+
+                    //Ball finishes its move to header pose BEFORE the overlay starts covering — sequential,
+                    //not simultaneous, so the two motions don't visually clash mid-move
+                    if (data.next.namespace !== 'main') {
+                        //Leaving main already triggers its own animateToHeader() via onBeforeLeave
+                        //(destroyHomeAnimation) — reuse that same timeline instead of starting a second,
+                        //concurrent one on the same properties (they'd fight over scene.position/plane.scale)
+                        let ballTimeline = data.current.namespace === 'main' ? discoball.headerTimeline : discoball.animateToHeader()
+                        ballTimeline.eventCallback('onComplete', startCover)
+                    } else {
+                        startCover()
+                    }
+                })
             },
             afterLeave(data) { console.log("AFTER LEAVE") },
 
-            beforeEnter: (data) => {
-                return new Promise(resolve => {
-                    console.log("BEFORE ENTER")
-                    //Get name of the nex page
-                    let text = document.querySelector(".transition-container-content-text")
-                    text.innerText = data.next.namespace.toUpperCase()
-                    //Header pose the disco ball for every page except main (main runs its own scroll animation)
-                    if (data.next.namespace !== 'main') discoball.animateToHeader()
-                    leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
-                })
-            },
+            beforeEnter(data) { console.log("BEFORE ENTER") },
 
             enter(data) { console.log("ENTER") },
             afterEnter(data) { console.log("AFTER ENTER") },
@@ -231,138 +345,50 @@ barba.init({
             after: (data) => {
                 return new Promise(resolve => {
                     console.log("ENTER")
-
-                    //Check if Roster Slider still exist 
+                    lenis.scrollTo(0, { immediate: true })
+                    //Check if Roster Slider still exist
                     let rosterSlider = document.querySelector('.roster-floating-image-wrapper')
 
                     //if (rosterSlider) { rosterSlider.remove() }
 
-                    //Prime the page intro as the overlay begins lifting — snap-to-hidden stays behind the overlay,
-                    //then it animates in as the page is revealed (no settled-then-animate flicker)
-                    enterAnimation(data.current.container, defaultTransititonContainer, resolve, () => revealPageContent(data.next.container))
-                    footer.update()
+                    if (data.next.namespace === 'main') {
+                        //No lift animation, NO reveals, and NO footer.update() here — the cover stays up
+                        //through the whole 1.5s ball intro. Anything visual (reveals) would play unseen,
+                        //and footer.update()'s ScrollTrigger.refresh() would fire the stacked-cards intro
+                        //behind the cover. All of it moves to onAfterEnter's ball-intro onComplete (cover off)
+                        resolve()
+                    } else {
+                        //Prime the page intro as the overlay begins lifting — snap-to-hidden stays behind the overlay,
+                        //then it animates in as the page is revealed (no settled-then-animate flicker)
+                        enterAnimation(data.current.container, defaultTransititonContainer, resolve, () => revealPageContent(data.next.container))
+                        footer.update()
 
-                    //Reveal the running line as the overlay lifts (first load is handled by the preloader)
-                    revealRunningLine(data.next.container)
+                        //Reveal the running line as the overlay lifts (first load is handled by the preloader)
+                        animateRunningLine(data.next.container.querySelector('.running_line'), 'reveal')
+                    }
                 })
             }
         }],
 
-    views: [{
-        //MAIN PAGE
-        namespace: 'main',
-        beforeEnter(data) {
-            console.log("Barba Main")
-            setFooterColor("#FF383C")
-
-            home = new MainPage(data.next.container, lenis)
-            home.setup()
-
-        },
-        afterEnter() {
-            home.run()
-            discoball.scrollHomeAnimation()
-            console.log("Barba Main After Enter")
-        },
-        beforeLeave() {
-            if (home) home.destroy()
-            home = null
-            discoball.destroyHomeAnimation()
-        }
-    }, {
-        //ROSTER PAGE
-        namespace: 'roster',
-        beforeEnter(data) {
-            console.log("Barba Roster")
-            setFooterColor("#FF383C")
-        },
-        afterEnter(data) {
-            let roster = new RosterPage(data.next.container)
-            roster.setup()
-        }
-    }, {
-        //ARCHIVE PAGE
-        namespace: 'archive',
-        beforeEnter(data) {
-            console.log("Barba Archive")
-            setFooterColor("#A7CEED")
-        },
-        afterEnter(data) {
-            //console.log(document.querySelector('.archive-content-projects-list'))
-            let archive = new ArchivePage(data.next.container)
-            archive.setup(data.next.container)
-        }
-    }, {
-        //PROJECT PAGE
-        namespace: 'project',
-        beforeEnter(data) {
-            console.log("Barba Project")
-            setFooterColor("#A7CEED")
-        },
-        afterEnter(data) {
-            let project = new ProjectPage(data.next.container)
-            project.setup()
-            project.getAllAltTexts(data.next.container)
-        }
-    }, {
-        //ABOUT PAGE
-        namespace: 'about',
-        beforeEnter(data) {
-            console.log("Barba About")
-            setFooterColor("#FCB8FA")
-        },
-        afterEnter(data) {
-            let about = new AboutPage()
-            about.setup()
-        }
-    }, {
-        //SERVICES PAGE
-        namespace: 'services',
-        beforeEnter(data) {
-            console.log("Barba Services")
-            setFooterColor("#FF383C")
-
-            let services = new ServicePage(data.next.container)
-            services.setup()
-            footer.update()
-
-        }
-    }, {
-        //ARTIST PAGE
-        namespace: 'artist',
-        beforeEnter(data) {
-            console.log("Barba ARTIST")
-            setFooterColor("#FF383C")
-        },
-        afterEnter(data) {
-            let artist = new ArtistPage(data.next.container)
-            artist.setup()
-        }
-    }, {
-        //PRIVACY PAGE
-        namespace: 'privacy',
-        beforeEnter(data) {
-            console.log("Barba PRIVACY")
-            setFooterColor("#FF383C")
-        },
-        afterEnter(data) {
-
-        }
-    }]
+    views: pageViews
 })
 
-
-//Reset scroll to the top on every barba navigation (before the new page renders)
-barba.hooks.beforeEnter(() => {
-    lenis.scrollTo(0, { immediate: true })
-})
-
-//The floating image wrapper is shared across roster<->artist — remove it when leaving that pair for anything else
+//The floating image wrapper is shared across roster<->artist — remove it when leaving that pair for anything else.
+//Its Swiper instances (stashed on the wrapper by RosterPage/ArtistPage as they're created) run their own
+//autoplay timers that don't stop just because the DOM node they're in gets removed — kill them explicitly first.
+//Deferred until 'transitionCovered' (the overlay has fully covered the screen) instead of removing it here —
+//beforeLeave fires long before that, so removing it immediately meant the user saw the wrapper vanish
+//first, then the cover catch up moments later
 barba.hooks.beforeLeave((data) => {
     let rosterPages = ['roster', 'artist']
     if (rosterPages.includes(data.current.namespace) && !rosterPages.includes(data.next.namespace)) {
-        let wrapper = document.querySelector('.roster-floating-image-wrapper')
-        if (wrapper) wrapper.remove()
+        document.addEventListener('transitionCovered', () => {
+            let wrapper = document.querySelector('.roster-floating-image-wrapper')
+            if (wrapper) {
+                if (wrapper._swipers) wrapper._swipers.forEach((swiper) => { if (!swiper.destroyed) swiper.destroy() })
+                wrapper.remove()
+            }
+        }, { once: true })
     }
 })
 
@@ -395,7 +421,19 @@ function leaveAnimation(barbaContainer, transitionContainer, resolve) {
     let leave = gsap.timeline()
     leave.set(transitionContainer, { yPercent: 100 })
     //leave.to(barbaContainer, { y: 100, autoAlpha: 0 })
-    leave.to(transitionContainer, { yPercent: 0, ease: "expo.inOut", onComplete: () => { resolve() } })
+    leave.to(transitionContainer, {
+        yPercent: 0,
+        ease: "expo.inOut",
+        onComplete: () => {
+            //Fires the moment the screen is fully covered (barba proceeds to enter right after this
+            //resolves) — anything that needs to happen hidden, unseen by the user, listens for this
+            document.dispatchEvent(new CustomEvent('transitionCovered'))
+            //Safe to run any visually-destructive cleanup now (e.g. ctx.revert() snapping animated
+            //properties back) — screen is fully hidden either way
+            document.dispatchEvent(new CustomEvent('safeToDestroy'))
+            resolve()
+        }
+    })
 }
 
 //DEFAULT BARBA ENTER ANIMATION
@@ -411,17 +449,24 @@ function enterAnimation(barbaContainer, transitionContainer, resolve, onReveal) 
     })
 }
 
-//RUNNING LINE REVEAL — chars staggered in, icons fade in (same as the menu). Per-page, so every container has its own
-function revealRunningLine(container) {
-    let runningLine = container.querySelector('.running_line')
-    if (!runningLine) return
+//RUNNING LINE HIDE/REVEAL — chars roll out/in (yPercent 120), icons fade. Builds + plays the
+//timeline and returns it (so the menu can hold onto it and reverse). direction: 'hide' | 'reveal'
+function animateRunningLine(runningLine, direction) {
+    if (!runningLine) return null
 
     let chars = runningLine.querySelectorAll('.char-svg')
     let icons = runningLine.querySelectorAll('.icon-svg')
 
     let tl = gsap.timeline()
-    tl.from(chars, { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
-    tl.from(icons, { autoAlpha: 0 }, "<")
+    if (direction === 'hide') {
+        tl.to(chars, { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
+        tl.to(icons, { autoAlpha: 0 }, "<")
+    } else {
+        tl.from(chars, { yPercent: 120, stagger: 0.03, ease: "expo.inOut" })
+        tl.from(icons, { autoAlpha: 0 }, "<")
+    }
+
+    return tl
 }
 
 //Play the same intro the roster<->artist transitions use, for pages reached another way (direct load, default transition)
@@ -431,10 +476,11 @@ function revealPageContent(container) {
     if (namespace === 'roster') {
         new ArtistToRosterTransition().animateList(container)
     } else if (namespace === 'artist') {
-        gsap.registerPlugin(SplitText)
         new RosterToArtistTransition().animateContent(container)
-    } else if (namespace === 'main' && home) {
-        home.revealHeroBottom()
+    } else if (namespace === 'main' && pageInstances.main) {
+        pageInstances.main.revealHeroBottom()
+    } else if (namespace === 'services' && pageInstances.services) {
+        pageInstances.services.revealMainScreen()
     }
 }
 

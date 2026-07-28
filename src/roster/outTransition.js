@@ -1,3 +1,5 @@
+import { gsap } from '../core/gsap'
+
 export class ArtistToRosterTransition {
 
     constructor(barbaData) {

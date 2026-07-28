@@ -1,16 +1,14 @@
-import Swiper from 'swiper';
-import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
+import { gsap, ScrollTrigger, SplitText } from '../core/gsap'
+import { BasePage } from '../core/BasePage'
+import { setupServiceFolders } from '../core/serviceCounts'
+import { prepareFolder, setupFolderSnap } from '../core/serviceFolders'
 
 
-export class MainPage {
+export class MainPage extends BasePage {
 
     constructor(barbaContainer, lenis) {
-        this.container = barbaContainer
+        super(barbaContainer)
         this.lenis = lenis
-        this.runningLineTimeline = gsap.timeline().pause()
         this.runningLineWrapper = barbaContainer.querySelector('.running_line')
         this.runningLine = barbaContainer.querySelectorAll('.running_line_container')
 
@@ -32,6 +30,12 @@ export class MainPage {
         this.eventBanner = barbaContainer.querySelector('.event_archive-banner')
         this.eventSliderWrapper = barbaContainer.querySelector('.event_archive-slider-wrapper')
         this.eventSlider = barbaContainer.querySelector('.event_archive-slider')
+
+        //NOT ctx-tracked — ctx.revert() undoes inline styles (snapping animated properties back to
+        //their pre-animation state), which is wrong here: these keep running live while the page is
+        //visible (infinite loop, scroll-scrubbed), so a revert would visibly reset them. Cleanup is
+        //explicit in destroy() instead (kill, not revert)
+        this.runningLineTimeline = gsap.timeline().pause()
         this.eventSliderTimeline = gsap.timeline({
             scrollTrigger: {
                 trigger: this.eventSection,
@@ -54,7 +58,6 @@ export class MainPage {
             duration: 40,
             repeat: -1
         })
-
 
         this.countProjects()
 
@@ -250,7 +253,13 @@ export class MainPage {
 
         let container = this.projectsSliderContainer.querySelector('.slider_cards')
         let cards = [...container.querySelectorAll('.projects-slider-cards-item')]
-        let total = cards.length
+        let originalTotal = cards.length
+
+        if (originalTotal === 0) return //no projects at all — nothing to build a slider from
+
+        //≤991: skip the stacked-deck intro, start the slider in its working state (see the introStackReveal
+        //branch below). Evaluated at setup, not live — the intro is a structural scroll-timeline
+        let isMobile = window.matchMedia('(max-width: 991px)').matches
 
         const DURATION = 0.7
         let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
@@ -260,7 +269,33 @@ export class MainPage {
         let CARD_STEP = cardWidth + GAP
 
         let containerWidth = container.offsetWidth
-        const VISIBLE_COUNT = Math.min(Math.max(1, Math.ceil((containerWidth + GAP) / CARD_STEP)), total - 1)
+        let desiredVisibleCount = Math.max(1, Math.ceil((containerWidth + GAP) / CARD_STEP))
+
+        //Not enough real projects to fill the visible slots plus one off-screen card to cycle
+        //in — clone the existing cards (cycling through the original set) until there are enough.
+        //Content repeats, but the slider still has real, independent DOM nodes to animate as if infinite.
+        //Padded total is rounded up to a full multiple of originalTotal — a partial cycle would break
+        //the repeat where the array wraps (e.g. 1,2,1,2,1 puts two "1"s next to each other at the seam)
+        let requiredTotal = desiredVisibleCount + 1
+        if (originalTotal < requiredTotal) {
+            let paddedTotal = Math.ceil(requiredTotal / originalTotal) * originalTotal
+            let originalCards = cards.slice()
+            while (cards.length < paddedTotal) {
+                let clone = originalCards[cards.length % originalTotal].cloneNode(true)
+                clone.style.opacity = '' //cloned from source markup — reset below, not inherited
+                container.appendChild(clone)
+                cards.push(clone)
+            }
+        }
+
+        let total = cards.length
+        const VISIBLE_COUNT = Math.min(desiredVisibleCount, total - 1)
+
+        //Exactly one card is "active" (opacity 1) at rest — the rest sit at 0.5. Authoritative here
+        //rather than relying on createCards' initial paint, since cloneNode would otherwise copy
+        //the source card's opacity onto every one of its duplicates
+        cards.forEach(card => { card.style.opacity = 0.5 })
+        cards[total - 1].style.opacity = 1
 
         let activeX = containerWidth - cardWidth
 
@@ -271,10 +306,11 @@ export class MainPage {
         let head = total - 1
         let animating = false
 
-        //Pagination "current / total" — front card's number is total - head (matches the card counter + description)
+        //Pagination "current / total" shows the real project count, not the padded clone count —
+        //head cycles through the padded range, so wrap it back to the original project's own index
         let pagination = this.container.querySelector('.projects-content-pagination')
         function updatePagination() {
-            if (pagination) pagination.textContent = `${total - head} / ${total}`
+            if (pagination) pagination.textContent = `${originalTotal - (head % originalTotal)} / ${originalTotal}`
         }
 
         gsap.set(container, { height: cardHeight })
@@ -417,7 +453,12 @@ export class MainPage {
 
         }
 
-        introStackReveal()
+        if (isMobile) {
+            gsap.set(container, { zIndex: 0 }) //mark as already-unstacked so the transition hide (toggleStackedSliderCards) leaves it
+            activateSlider()                    //wire prev/next now — no intro to wait on
+        } else {
+            introStackReveal()
+        }
         updatePagination()
 
 
@@ -523,7 +564,8 @@ export class MainPage {
         }
 
         function setDescriptionContent(index) {
-            let projectData = projectsData[index]
+            //index may run over the padded clone range — wrap back to the real project it repeats
+            let projectData = projectsData[index % projectsData.length]
             titleElement.textContent = projectData.dummyName
             labelElement.textContent = projectData.dummyLabel
             linkElement.href = projectData.link
@@ -532,8 +574,9 @@ export class MainPage {
 
         if (titleElement && labelElement && linkElement) {
             setDescriptionContent(head)
-            //Hidden until the cards unstack — revealDescriptionBlock brings it in from the dropTimeline scrub
-            gsap.set(descriptionContainer, { autoAlpha: 0 })
+            //Hidden until the cards unstack — revealDescriptionBlock brings it in from the dropTimeline scrub.
+            //On mobile there's no unstack, so leave it visible (working state)
+            if (!isMobile) gsap.set(descriptionContainer, { autoAlpha: 0 })
         }
 
         //One-shot reveal, fired from the intro scrub while the cards unstack: title + paragraph lines
@@ -546,7 +589,7 @@ export class MainPage {
         let bottomBlock = this.container.querySelector('.bottom_content-text')
         let bottomTexts = bottomBlock ? [bottomBlock.querySelector('.bottom_content-number'), bottomBlock.querySelector('.bottom_content-text_container > div')].filter(Boolean) : []
         let bottomLink = bottomBlock?.querySelector('.link-element')
-        if (bottomBlock) gsap.set(bottomBlock, { autoAlpha: 0 })
+        if (bottomBlock && !isMobile) gsap.set(bottomBlock, { autoAlpha: 0 }) //mobile: no intro, keep visible
 
         let descRevealed = false
         function revealDescriptionBlock() {
@@ -641,7 +684,6 @@ export class MainPage {
         data.forEach((project, i) => {
             let counter = data.length - i
             let card = createItem(project.image, project.dummyDate, counter)
-            card.style.opacity = counter === 1 ? 1 : 0.5
             sliderContainer.append(card)
         })
 
@@ -675,53 +717,19 @@ export class MainPage {
 
     pinnedFolders() {
 
+        setupServiceFolders(this.container) //projects-per-service counts + placeholder-button hide, before the layout is torn down
+
         this.folderWebflowContainer.remove() //Remove Webflow Layout
 
-        this.servicesFolders.forEach((folder, i) => {
-
+        this.servicesFolders.forEach((folder) => {
             this.foldersWrapper.append(folder) //Move Nodes to the actual layout
-
-            let projectCount = folder.querySelector('.service-count-number')
-            let dummyCountDiv = folder.querySelector('.services-projects-count')
-            let dummyCount = dummyCountDiv.querySelectorAll('.w-dyn-item')
-
-            //console.log(dummyCount.length)
-            projectCount.innerHTML = dummyCount.length
-
-
-            let content = folder.querySelector('.service-content')
-            let name = content.querySelector('.service-content-name')
-            let slider = content.querySelector('.service-content-slider')
-            let right = content.querySelector('.service-content-right')
-
-            let contentGap = parseInt(window.getComputedStyle(right).gap, 10)
-            let nameHeight = name.offsetHeight
-            let contentHeight = content.offsetHeight
-            let contentPaddingBottom = parseInt(window.getComputedStyle(content).paddingBottom, 10)
-            let contentPaddingTop = parseInt(window.getComputedStyle(content).paddingTop, 10)
-            let sliderNewHeight = content.offsetHeight - nameHeight - contentGap - contentPaddingBottom - contentPaddingTop
-
-            //Recalculate height of slider
-            slider.style.height = (100 * sliderNewHeight / window.innerHeight) + "vh"
-
-            let swiper = this.createSlider(slider)
-            let reveal = this.revealFolderContent(folder)
-            let revealed = false
-
-            this.onFolderInView(folder,
-                () => {
-                    if (!revealed) { revealed = true; reveal.play() } //content reveal fires once only
-                    if (swiper) { swiper.slideNext(); swiper.autoplay.start() }
-                },
-                () => { if (swiper) swiper.autoplay.stop() }
-            )
+            prepareFolder(this, folder)        //slider + cursor + content reveal + autoplay-on-view (shared)
         })
 
 
         //--top-folder-height is in rem — convert to px via the root font size
         let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
         let folderPinHeight = (parseFloat(getComputedStyle(this.servicesFolders[0]).getPropertyValue('--top-folder-height')) || 0) * rootFontSize
-        console.log(folderPinHeight)
 
         // Create a timeline linked to the page scroll
         let servicesTimeline = gsap.timeline({
@@ -736,44 +744,7 @@ export class MainPage {
             }
         });
 
-        //Input-driven folder snap. ScrollTrigger's built-in snap fires only once the scroller stops, and Lenis'
-        //low lerp coasts for a long time — so it snaps late. Instead, step to the next/prev folder on wheel
-        //intent and drive it through Lenis with lock, so a small scroll jumps straight to the next folder.
-        let st = servicesTimeline.scrollTrigger
-        let folderCount = this.servicesFolders.length
-        let lenis = this.lenis
-
-        if (folderCount > 1 && lenis) {
-            const THRESHOLD = 200 // accumulated wheel delta needed before committing a step (higher = less eager)
-            let snapping = false
-            let accum = 0
-            const snapScroll = (i) => st.start + (i / (folderCount - 1)) * (st.end - st.start)
-
-            //Stored on the instance so destroy() can remove it — it lives on window and would
-            //otherwise keep hijacking scroll on other pages after barba swaps the container
-            this.folderWheelHandler = (e) => {
-                if (!st.isActive || snapping) { accum = 0; return }
-
-                accum += e.deltaY
-                if (Math.abs(accum) < THRESHOLD) return // ignore small scrolls
-
-                let dir = Math.sign(accum)
-                accum = 0
-
-                let current = Math.round(st.progress * (folderCount - 1))
-                let next = Math.min(Math.max(current + dir, 0), folderCount - 1)
-                if (next === current) return // at an edge — let the page scroll past normally
-
-                snapping = true
-                lenis.scrollTo(snapScroll(next), {
-                    duration: 1.2,
-                    lock: true, // ignore further scroll input until this settles
-                    onComplete: () => { snapping = false; accum = 0 }
-                })
-            }
-
-            window.addEventListener('wheel', this.folderWheelHandler, { passive: true })
-        }
+        setupFolderSnap(this, servicesTimeline.scrollTrigger, this.servicesFolders.length) //shared wheel snap
 
         // Animate each container up into view one by one
         this.servicesFolders.forEach((container, i) => {
@@ -789,187 +760,24 @@ export class MainPage {
 
     }
 
-
-    createSlider(sliderContainer) {
-
-        let slideCount = sliderContainer.querySelectorAll('.swiper-slide').length
-
-        if (slideCount > 0) {
-
-            let swiperElement = sliderContainer.querySelector('.swiper')
-
-            let pagination = document.createElement('div')
-            pagination.classList.add('swiper-pagination')
-
-            swiperElement.append(pagination)
-
-            let swiper = new Swiper(swiperElement, {
-
-                modules: [Navigation, Pagination, Autoplay],
-                loop: true,
-                snapToSlideEdge: true,
-                speed: 400,
-                pagination: {
-                    el: '.swiper-pagination',
-                    type: "fraction"
-                },
-                autoplay: {
-                    disableOnInteraction: false,
-                    delay: 2000
-                }
-
-            })
-
-            swiper.autoplay.stop() //Off until the folder is in view (see autoplayInView)
-
-            //Click zones on top of the slides: left half = previous, right half = next.
-            //The arrow is a real element following the mouse (CSS cursor images can't be animated
-            //or recolored) — tinted from the folder's sticky-fake-container, popping on click
-            let zones = document.createElement('div')
-            zones.classList.add('slider-nav-zones')
-            zones.innerHTML = '<div class="slider-nav-zone slider-nav-zone--prev"></div><div class="slider-nav-zone slider-nav-zone--next"></div>'
-            swiperElement.append(zones)
-
-            zones.firstChild.addEventListener('click', () => swiper.slidePrev())
-            zones.lastChild.addEventListener('click', () => swiper.slideNext())
-
-            let cursor = document.createElement('div')
-            cursor.classList.add('slider-cursor')
-            cursor.innerHTML = `
-                <svg class="slider-cursor-prev" width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M27 0C12.0883 0 0 12.0883 0 27C0 41.9117 12.0883 54 27 54C41.9117 54 54 41.9117 54 27C54 12.0883 41.9117 0 27 0ZM26.9297 26.0352H35V28.0352H26.9297V32.8096L16.9297 27.0352L26.9297 21.2627V26.0352Z" fill="currentColor"/></svg>
-                <svg class="slider-cursor-next" width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M27 0C41.9117 0 54 12.0883 54 27C54 41.9117 41.9117 54 27 54C12.0883 54 0 41.9117 0 27C0 12.0883 12.0883 0 27 0ZM26.0703 26.0352H18V28.0352H26.0703V32.8096L36.0703 27.0352L26.0703 21.2627V26.0352Z" fill="currentColor"/></svg>
-            `
-            zones.append(cursor)
-
-            //Tint from this folder's sticky-fake-container background
-            let fakeContainer = sliderContainer.closest('.services-sticky-container')?.querySelector('.sticky-fake-container')
-            if (fakeContainer) cursor.style.color = getComputedStyle(fakeContainer).backgroundColor
-
-            let prevIcon = cursor.querySelector('.slider-cursor-prev')
-            let nextIcon = cursor.querySelector('.slider-cursor-next')
-            let moveX = gsap.quickTo(cursor, 'x', { duration: 0.15, ease: 'power2.out' })
-            let moveY = gsap.quickTo(cursor, 'y', { duration: 0.15, ease: 'power2.out' })
-
-            zones.addEventListener('mousemove', (e) => {
-                let rect = zones.getBoundingClientRect()
-                moveX(e.clientX - rect.left)
-                moveY(e.clientY - rect.top)
-
-                let onLeftHalf = e.clientX - rect.left < rect.width / 2
-                prevIcon.style.display = onLeftHalf ? 'block' : 'none'
-                nextIcon.style.display = onLeftHalf ? 'none' : 'block'
-            })
-
-            zones.addEventListener('mouseenter', () => gsap.to(cursor, { autoAlpha: 1, duration: 0.2 }))
-            zones.addEventListener('mouseleave', () => gsap.to(cursor, { autoAlpha: 0, duration: 0.2 }))
-
-            //Pop on click — snap down, ease back (cubic)
-            zones.addEventListener('click', () => {
-                gsap.fromTo(cursor, { scale: 0.8 }, { scale: 1, duration: 0.4, ease: 'power2.out', overwrite: 'auto' })
-            })
-
-            return swiper
-        }
-
-        return null
-    }
-
-    //Fire onEnter/onLeave when a folder crosses into/out of view (lower threshold = fires earlier)
-    onFolderInView(folder, onEnter, onLeave, threshold = 0.2) {
-        const THRESHOLD = threshold
-        let active = false
-
-        let observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                let inView = entry.intersectionRatio >= THRESHOLD
-                if (inView && !active) {
-                    active = true
-                    onEnter && onEnter()
-                } else if (!inView && active) {
-                    active = false
-                    onLeave && onLeave()
-                }
-            })
-        }, { threshold: [THRESHOLD] })
-
-        observer.observe(folder)
-    }
-
-    //Reusable folder-content reveal — returns a paused timeline (copy this to services.js). Text elements
-    //reveal line-by-line up from a mask; buttons + tags fade/move up. Everything on cubic (power2) easing.
-    revealFolderContent(folder) {
-        gsap.registerPlugin(SplitText)
-
-        let ease = 'power2.out' // cubic
-        let tl = gsap.timeline({ paused: true })
-
-        //Masked line reveals — short headline-type elements only (rich body text masks badly with its leading)
-        let maskTargets = [
-            folder.querySelector('.service-content-name'),
-            folder.querySelector('.service-count-number'),
-            folder.querySelector('.service-count-label'),
-        ].filter(Boolean)
-
-        if (maskTargets.length) {
-            let split = new SplitText(maskTargets, { type: 'lines', mask: 'lines', linesClass: 'reveal-line' })
-            tl.from(split.lines, {
-                yPercent: 100,
-                duration: 0.8,
-                stagger: 0.05,
-                ease
-            })
-        }
-
-        //Rich body text — line-by-line fade + up, no mask (avoids the leading/clip issues)
-        let rich = folder.querySelector('.service-content-rich')
-        if (rich) {
-            let richSplit = new SplitText(rich, { type: 'lines' })
-            tl.from(richSplit.lines, {
-                autoAlpha: 0,
-                y: 20,
-                duration: 0.6,
-                stagger: 0.05,
-                ease
-            }, '<')
-        }
-
-        //Slider — slight fade + move up
-        let sliderEl = folder.querySelector('.service-content-slider')
-        if (sliderEl) {
-            tl.from(sliderEl, { autoAlpha: 0, y: 20, duration: 0.6, ease }, '<')
-        }
-
-        //Buttons — fade + move up
-        let buttons = folder.querySelector('.service-content-buttons')
-        if (buttons) {
-            tl.from(buttons, { autoAlpha: 0, y: 20, duration: 0.6, ease }, '<0.2')
-        }
-
-        //Tags — the finale: fade + move up, staggered, after everything else so it's still playing when the folder lands
-        let tags = folder.querySelectorAll('.service-tags-container > *')
-        if (tags.length) {
-            tl.from(tags, { autoAlpha: 0, y: 20, duration: 0.6, stagger: 0.08, ease }, '>-0.2')
-        }
-
-        return tl
-    }
-
     run() {
         this.runningLineTimeline.play()
     }
 
-    //Called from barba beforeLeave. Kills everything that would outlive the container:
-    //the window-level wheel snap and every ScrollTrigger anchored inside this page —
-    //orphaned STs recalc against the detached container and hijack scroll on other pages
+    //Called from barba beforeLeave (deferred until 'safeToDestroy' — see PageRegistry). super.destroy()
+    //removes the tracked wheel listener; ctx.revert() is a no-op here since nothing's added to ctx.
+    //Everything else is killed explicitly (not reverted) so nothing visibly snaps back to its
+    //pre-animation state — by the time this runs the screen is already covered, but kill is still the
+    //right operation, not revert, since revert also fights ScrollTrigger.getAll() below over the same STs
     destroy() {
-        if (this.folderWheelHandler) window.removeEventListener('wheel', this.folderWheelHandler)
+        super.destroy()
+
+        this.runningLineTimeline.kill()
+        this.eventSliderTimeline.kill()
 
         ScrollTrigger.getAll().forEach((st) => {
             if (st.trigger && this.container.contains(st.trigger)) st.kill()
         })
-
-        this.eventSliderTimeline.kill()
-        this.runningLineTimeline.kill()
     }
 
 }

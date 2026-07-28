@@ -1,0 +1,212 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>disco scatter — sketch v11</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:hsl(0,0%,0%)}
+canvas{display:block;width:100vw;height:100vh}
+#ui{position:fixed;top:12px;right:12px;padding:10px 12px;background:rgba(0,0,0,.45);
+    border-radius:8px;font:12px/1.6 monospace;color:#ccc;user-select:none}
+#ui label{display:flex;gap:8px;align-items:center}
+#ui input{width:120px}
+</style>
+<div id="ui">
+  <label>hue <input id="hue" type="range" min="0" max="360" value="0"></label>
+  <label>sat <input id="sat" type="range" min="0" max="100" value="0"></label>
+  <label>lit <input id="lit" type="range" min="0" max="100" value="0"></label>
+</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true });
+
+const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+
+const FS = `
+precision highp float;
+uniform float uTime;
+uniform vec2  uRes;
+#define PI 3.14159265
+
+// ---- knobs ----
+uniform vec2  uBall;   // convergence point, uv space
+#define SPIN       0.05
+#define SPREAD     1.35
+#define ROWS       26.0
+#define KILL       0.12
+#define WARP       0.04
+#define SIZE_NEAR  0.014   // blob radius near the ball (uv units)
+#define SIZE_FAR   0.090   // blob radius at the bottom
+#define STRETCH_TOP  1.1   // elongation near the top (1.0 = round)
+#define STRETCH_BOT  3.0   // elongation at the bottom of the screen
+#define CA_NEAR      0.003 // chromatic split near the ball (uv units)
+#define CA_FAR       0.012 // chromatic split far from the ball
+#define GATE_NEAR  1.5
+#define GATE_FAR   7.0
+
+mat3 rotY(float a){ float c=cos(a), s=sin(a); return mat3(c,0.,-s, 0.,1.,0., s,0.,c); }
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+float spot(vec2 uv, float ch){
+  vec2 rel = uv - uBall;
+
+  float w = length(rel);
+  rel += WARP * w * vec2(sin(rel.y * 5.0 + uTime * 0.10),
+                         cos(rel.x * 4.0 - uTime * 0.08));
+
+  vec3 P = vec3(rel * SPREAD, 1.4);
+  vec3 d = normalize(P);
+  vec3 L = normalize(vec3(0.0, -0.35, 1.0));
+
+  float t = uTime * SPIN;
+  vec3 n  = normalize(d - L);            // only used to find candidate facets
+  vec3 nl = rotY(-t) * n;
+
+  float phi   = acos(clamp(nl.y, -1.0, 1.0));
+  float th    = atan(nl.z, nl.x);
+  float band0 = floor(phi / PI * ROWS);
+  mat3 R      = rotY(t);
+
+  float acc = 0.0;
+  for (int db = -2; db <= 2; db++){
+    float band = band0 + float(db);
+    if (band < 0.0 || band >= ROWS) continue;
+
+    float phic = (band + 0.5) / ROWS * PI;
+    float cols = max(3.0, floor(ROWS * 2.0 * sin(phic)));
+    float col0 = floor((th / (2.0 * PI) + 0.5) * cols);
+
+    float poleFade = smoothstep(0.10, 0.30, sin(phic));
+    if (poleFade <= 0.0) continue;
+
+    for (int dc = -2; dc <= 2; dc++){
+      float col = mod(col0 + float(dc), cols);
+      float thc = ((col + 0.5) / cols - 0.5) * 2.0 * PI;
+
+      vec3 nc = R * vec3(sin(phic) * cos(thc), cos(phic), sin(phic) * sin(thc));
+      vec3 rd = reflect(L, nc);
+      if (rd.z < 0.10) continue;          // reflection misses the wall
+
+      // project reflected ray onto the wall -> blob center in screen space
+      vec2 hit = rd.xy * (1.4 / rd.z) / SPREAD;
+      float fd = length(hit);             // blob's own distance from ball
+
+      vec2 er = hit / max(fd, 1e-4);
+      vec2 et = vec2(-er.y, er.x);
+
+      float id = hash(vec2(band, col));
+
+      // elongation and size both grow toward the bottom of the screen
+      float by = hit.y + uBall.y;                    // blob position in uv space
+      float botW = smoothstep(-0.9, 0.5, by);        // 0 at bottom, 1 at top
+      float stretch = mix(STRETCH_BOT, STRETCH_TOP, botW);
+      float sz = mix(SIZE_FAR, SIZE_NEAR, botW);
+      sz *= 0.7 + 0.7 * fract(id * 7.31);            // per-blob scale jitter
+
+      // per-blob chromatic split along the radial direction
+      float ca = mix(CA_NEAR, CA_FAR, smoothstep(0.3, 2.0, fd));
+      vec2 dp = rel - hit - er * ca * ch;
+
+      float rr = dot(dp, er) / (sz * stretch);
+      float tt = dot(dp, et) / sz;
+      float d2 = rr * rr + tt * tt;
+      if (d2 > 16.0) continue;
+
+      float alive = step(KILL, id);
+      float flick = 0.7 + 0.3 * sin(uTime * (0.25 + id * 1.2) + id * 80.0);
+
+      float bd2   = dot(vec3(hit * SPREAD, 1.4), vec3(hit * SPREAD, 1.4));
+      float farW  = smoothstep(GATE_NEAR, GATE_FAR, bd2);
+      float pulse = smoothstep(0.35, 0.6, 0.5 + 0.5 * sin(uTime * (0.10 + id * 0.3) + id * 40.0));
+      float gate  = mix(1.0, pulse, farW);
+
+      float s = exp(-d2 * 4.0) * 0.9      // soft core
+              + exp(-d2 * 0.8) * 0.30;    // halo
+      s *= 2.4 / (1.0 + bd2 * 0.8);       // whole blob dims with distance, uniformly
+
+      acc += s * poleFade * alive * flick * gate;
+    }
+  }
+
+  return acc;
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;
+
+  vec3 c = vec3(
+    spot(uv, -1.0),
+    spot(uv,  0.0),
+    spot(uv,  1.0) * 1.04
+  );
+
+  c = min(c, vec3(1.0));
+  // premultiplied alpha: transparent where there is no light
+  gl_FragColor = vec4(c, max(c.r, max(c.g, c.b)));
+}`;
+
+function sh(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(s);
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+const uTime = gl.getUniformLocation(prog, 'uTime');
+const uRes  = gl.getUniformLocation(prog, 'uRes');
+const uBall = gl.getUniformLocation(prog, 'uBall');
+
+// convergence point, uv space (x: ±aspect, y: ±1, +y up).
+// animate from anywhere: gsap.to(ball, { x: 0, y: 0, duration: 2 })
+const ball = window.ball = { x: 0.0, y: 1.02 };
+
+function clientToUV(e){
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: ((e.clientX - r.left) * 2 - r.width) / r.height,
+    y: -(((e.clientY - r.top) * 2 - r.height) / r.height)
+  };
+}
+let dragging = false;
+canvas.addEventListener('pointerdown', e => { dragging = true; Object.assign(ball, clientToUV(e)); });
+addEventListener('pointermove', e => { if (dragging) Object.assign(ball, clientToUV(e)); });
+addEventListener('pointerup', () => dragging = false);
+
+function resize(){
+  const dpr = Math.min(devicePixelRatio, 2);
+  canvas.width  = innerWidth  * dpr;
+  canvas.height = innerHeight * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+addEventListener('resize', resize);
+resize();
+
+const hue = document.getElementById('hue'),
+      sat = document.getElementById('sat'),
+      lit = document.getElementById('lit');
+function setBg(){
+  document.body.style.background = `hsl(${hue.value},${sat.value}%,${lit.value}%)`;
+}
+hue.oninput = sat.oninput = lit.oninput = setBg;
+setBg();
+
+function frame(t){
+  gl.uniform1f(uTime, t * 0.001);
+  gl.uniform2f(uRes, canvas.width, canvas.height);
+  gl.uniform2f(uBall, ball.x, ball.y);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>

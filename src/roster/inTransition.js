@@ -1,4 +1,4 @@
-
+import { gsap, SplitText } from '../core/gsap'
 
 export class RosterToArtistTransition {
 
@@ -8,8 +8,6 @@ export class RosterToArtistTransition {
     }
 
     animate() {
-
-        gsap.registerPlugin(SplitText)
 
         console.log(this.data)
 
