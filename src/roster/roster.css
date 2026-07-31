@@ -68,17 +68,15 @@
   }
 
 
-  .artist-specialty div::after {
-    content: ",";
-    padding-left: 0.25rem;
-  }
-
-   .artist-specialty:nth-last-child(1) div::after {
-    content: "";
-    padding-left: 0rem;
-  }
-
+  /* Specialties are now flattened to one comma-joined text line in JS (concatSpecialties), so the
+     per-div ::after comma trick is gone. */
 
   [data-slider-state="active"] {
     opacity: 1 !important;
+  }
+  /* Swiper's fraction pagination defaults to position:absolute; width:100% (from swiper/css/pagination).
+     In the artist mobile controls it's just an inline label between the arrows — reset it to flow. */
+  .artist-slider-buttons .swiper-pagination-fraction {
+    position: static;
+    width: auto;
   }

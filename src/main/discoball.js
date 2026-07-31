@@ -46,10 +46,10 @@ export class Disco {
         this.shaderMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 iTime: { value: 0.0 },
-                iResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                iResolution: { value: new THREE.Vector2(3, 2) }, //plane aspect, not screen — see resize()
                 //Scatter shader uniforms (see createShaderPlane) — uBall is the convergence point in uv space
                 uTime: { value: 0.0 },
-                uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                uRes: { value: new THREE.Vector2(3, 2) }, //plane aspect, not screen — see resize()
                 uBall: { value: new THREE.Vector2(SCATTER_BALL_X, SCATTER_BALL_Y) }
             }
         })
@@ -126,20 +126,28 @@ export class Disco {
         this.container.appendChild(this.renderer.domElement)
 
 
-        window.addEventListener('resize', () => {
-            this.camera.aspect = this.container.clientWidth / this.container.clientHeight
-            this.camera.updateProjectionMatrix()
-            this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
-        })
+        //Resize wiring. window 'resize' covers desktop. visualViewport 'resize'/'scroll' fire when the
+        //mobile URL bar shows/hides — window 'resize' can miss those, which is why the ball loaded
+        //stretched (aspect measured against a too-tall 100dvh before the viewport settled) and only
+        //corrected once a scroll finally fired a resize. The rAF re-measures right after setup.
+        let onResize = () => this.resize()
+        window.addEventListener('resize', onResize)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', onResize)
+            window.visualViewport.addEventListener('scroll', onResize)
+        }
+        requestAnimationFrame(onResize)
 
         //≤991: shrink the whole disco to 0.7. scene.scale multiplies every child, so the plane's
         //animated header/menu scales (1, 1.8) come out at 0.7 / 1.26 automatically — no need to
         //edit each animation. Reverts to full above 991; live on resize/rotation.
         gsap.matchMedia().add("(max-width: 991px)", () => {
-            this.scene.scale.setScalar(0.7)
-            //Lift the smaller ball a touch. scene.position.y is animated (scrub/header/menu) so an
-            //offset there wouldn't stick — pan the camera + its target down by 0.1 instead, which
-            //shifts the ball up in-frame across every pose.
+            this.scene.scale.setScalar(0.6)
+            //Center the disco vertically on mobile — it sits high, so pan the camera UP (position +
+            //target together = pure vertical pan) which drops the ball toward the middle of the
+            //viewport. Survives the scene.position anims. Tune the 0.5 to taste.
+            this.camera.position.y = 0.2
+            this.camera.lookAt(0, 0.2, 0)
             return () => {
                 this.scene.scale.setScalar(1)
                 this.camera.position.y = 0
@@ -148,6 +156,22 @@ export class Disco {
         })
 
         return this.camera
+    }
+
+    //Single source of truth for canvas sizing — camera aspect, renderer size, AND the shader's aspect
+    //uniforms (uRes was set once in the constructor and never updated, so the scatter pattern kept a
+    //stale aspect). Called on every viewport change + once after setup.
+    resize() {
+        let w = this.container.clientWidth
+        let h = this.container.clientHeight
+        this.camera.aspect = w / h
+        this.camera.updateProjectionMatrix()
+        this.renderer.setSize(w, h)
+        //Aspect for the scatter pattern = the PLANE's own 3:2 (see PlaneGeometry(3,2)), not the viewport.
+        //vUv is quad-local so the pattern is baked into the plane; correcting by screen res only looked
+        //right on desktop because screen≈plane aspect, and squished on portrait mobile. Plane-locked = stable.
+        this.shaderMaterial.uniforms.uRes.value.set(3, 2)
+        this.shaderMaterial.uniforms.iResolution.value.set(3, 2)
     }
 
     run(model) {
@@ -650,7 +674,8 @@ export class Disco {
     animateToMenu(timeline) {
         timeline.clear()
         timeline.to(this.scene.position, {
-            y: 0.5,
+            //≤991: sit the menu pose a bit higher than desktop
+            y: window.matchMedia('(max-width: 991px)').matches ? 0.8 : 0.5,
             z: -2,
             ease: 'expo.inOut',
             duration: 1

@@ -111,3 +111,15 @@
   top: -100%;
   transition: top 0.4s cubic-bezier(0, .68, .49, 1);
 }
+
+/* ≤991: center the fixed booking button (Webflow pins it bottom-right via `inset`). Auto-margins,
+   NOT transform — footer.js animates this button's transform (yPercent hide), which would wipe a
+   translateX(-50%). left/right:0 + margin-inline:auto centers it regardless of its width. */
+@media (max-width: 991px) {
+  .booking_button {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: fit-content; /* auto width + left/right:0 stretches full-width; fit-content shrinks to content so margin-auto can center it */
+  }
+}

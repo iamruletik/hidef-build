@@ -17,6 +17,16 @@ p {
   height: 100vh;
 }
 
+/* Track the mobile visual viewport. Webflow sets these to 100vh = the LARGE viewport (URL bar hidden),
+   so at load the fixed disco + hero measure too tall — ball stretched/off-center until a scroll fires a
+   resize. 100dvh follows the current visible height; discoball.js resize() re-measures the canvas as it
+   changes. dvh == vh on desktop, so this is a no-op there. .main-section.sticky_wrapper (500vh) is more
+   specific and keeps its scroll length. */
+.disco-container,
+.main-section {
+  height: 100dvh;
+}
+
 .progressive-blur-container {
   position: absolute;
   left: 0;
@@ -273,7 +283,24 @@ p {
   overflow: hidden;
   /* --cardScale rides in the same var-driven transform — GSAP's own scale would bake an inline
      matrix and disconnect the live --position calc */
-  transform: rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation)) scale(var(--cardScale, 1));
+  transform: rotateY(var(--orbit, 0deg)) rotateY(calc((var(--position) - 1) * (360 / var(--quantity)) * 1deg)) translateZ(var(--zTranslation)) scale(var(--cardScale, 1));
+}
+
+/* ≤991: the cylinder is sized in vw, so on a narrow portrait viewport the cards shrink to ~40px and
+   float in a tall banner. Scale every length in the 3D scene by the same factor (perspective, card,
+   translateZ) — uniform scale keeps the render identical in proportion but ~2.2× bigger on screen. */
+@media (max-width: 991px) {
+  .event_archive-banner {
+    perspective: 165vw;
+  }
+
+  .event_archive-item {
+    --zTranslation: 46vw;
+    width: 24vw;
+    height: 28vw;
+    top: calc(50% - 14vw);
+    left: calc(50% - 12vw);
+  }
 }
 
 /* Projects Slider */
@@ -366,6 +393,14 @@ p {
   z-index: 5;
   display: flex;
   cursor: none;
+}
+
+/* ≤991: no custom cursor — drop the click zones entirely so touch reaches the swiper and native
+   drag works (the zones sit on top and would swallow the touch). Covers folder + artist sliders. */
+@media (max-width: 991px) {
+  .slider-nav-zones {
+    display: none;
+  }
 }
 
 .slider-nav-zone {

@@ -250,6 +250,11 @@ barba.init({
     },
     preventRunning: true,
     transitions: [
+        //Custom roster<->artist transitions run on desktop only. On ≤991 they're omitted from the array so
+        //barba falls back to default-transition (mobile has no floating wrapper to animate). Barba ignores a
+        //`custom` guard when from/to are set, so gating by conditional registration is the reliable way.
+        //Evaluated once at load — a desktop<->mobile resize without reload won't re-gate.
+        ...(window.matchMedia('(max-width: 991px)').matches ? [] : [
         {
             name: 'roster-to-artist-transition',
             from: {
@@ -300,6 +305,7 @@ barba.init({
 
             }
         },
+        ]),
         {
             name: 'default-transition',
             sync: false,
@@ -314,25 +320,32 @@ barba.init({
             //already hidden behind the overlay by the time that happens
             leave(data) {
                 return new Promise(resolve => {
-                    console.log("LEAVE")
                     toggleStackedSliderCards(0)
-                    //Next page name set before the cover finishes, so it's already correct once revealed
-                    let text = document.querySelector(".transition-container-content-text")
-                    text.innerText = data.next.namespace.toUpperCase()
 
-                    let startCover = () => leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
+                    //Touch has no hover-prefetch, so when leave fires the next page often isn't fetched yet —
+                    //data.next.namespace is empty, which blanked the cover label AND mis-branched the main
+                    //check below. sync:false loads the next page concurrently with leave, so hold here (that's
+                    //what the leave Promise is for) until it's ready, then set the label + run the ball/cover.
+                    whenNextReady(data).then(() => {
+                        //Set on THIS cover container (it's remove()/recreate()d on main entry, so a global
+                        //querySelector can hit a stale node)
+                        let text = defaultTransititonContainer.querySelector(".transition-container-content-text")
+                        if (text) text.innerText = (data.next.namespace || '').toUpperCase()
 
-                    //Ball finishes its move to header pose BEFORE the overlay starts covering — sequential,
-                    //not simultaneous, so the two motions don't visually clash mid-move
-                    if (data.next.namespace !== 'main') {
-                        //Leaving main already triggers its own animateToHeader() via onBeforeLeave
-                        //(destroyHomeAnimation) — reuse that same timeline instead of starting a second,
-                        //concurrent one on the same properties (they'd fight over scene.position/plane.scale)
-                        let ballTimeline = data.current.namespace === 'main' ? discoball.headerTimeline : discoball.animateToHeader()
-                        ballTimeline.eventCallback('onComplete', startCover)
-                    } else {
-                        startCover()
-                    }
+                        let startCover = () => leaveAnimation(data.current.container, defaultTransititonContainer, resolve)
+
+                        //Ball finishes its move to header pose BEFORE the overlay starts covering — sequential,
+                        //not simultaneous, so the two motions don't visually clash mid-move
+                        if (data.next.namespace !== 'main') {
+                            //Leaving main already triggers its own animateToHeader() via onBeforeLeave
+                            //(destroyHomeAnimation) — reuse that same timeline instead of starting a second,
+                            //concurrent one on the same properties (they'd fight over scene.position/plane.scale)
+                            let ballTimeline = data.current.namespace === 'main' ? discoball.headerTimeline : discoball.animateToHeader()
+                            ballTimeline.eventCallback('onComplete', startCover)
+                        } else {
+                            startCover()
+                        }
+                    })
                 })
             },
             afterLeave(data) { console.log("AFTER LEAVE") },
@@ -393,6 +406,22 @@ barba.hooks.beforeLeave((data) => {
 })
 
 
+
+//Barba exposes no "next loaded" promise. With sync:false the next page loads concurrently with leave(),
+//so its namespace/container fill in on the same data.next object mid-leave. Resolve once that happens
+//(desktop is usually instant thanks to hover-prefetch; touch waits the fetch). Safety cap so a failed/slow
+//fetch can't hang the transition forever.
+function whenNextReady(data) {
+    return new Promise(resolve => {
+        if (data.next.namespace) return resolve()
+        let start = performance.now()
+        let check = () => {
+            if (data.next.namespace || performance.now() - start > 3000) return resolve()
+            requestAnimationFrame(check)
+        }
+        requestAnimationFrame(check)
+    })
+}
 
 //CREATE TRANSITION CONTAINER IN THE DOM
 function createTransitionContainer() {

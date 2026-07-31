@@ -8,4 +8,9 @@ import { CustomEase } from 'gsap/CustomEase'
 
 gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase)
 
+//Mobile URL bar show/hide changes viewport height and makes ScrollTrigger refresh mid-scroll — pins
+//recalc and jump. Ignore those small height changes (real resize/orientation still refreshes). NOT
+//normalizeScroll: that hijacks touch scrolling and would fight Lenis (which drives ScrollTrigger.update).
+ScrollTrigger.config({ ignoreMobileResize: true })
+
 export { gsap, ScrollTrigger, SplitText, CustomEase }

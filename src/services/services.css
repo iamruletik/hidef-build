@@ -63,6 +63,14 @@
 
   }
 
+  @media (max-width: 991px) {
+
+    .service-content {
+      height: auto;
+    }
+
+  }
+
   .services-sticky-container:nth-child(1) {
     z-index: 1;
     --i: 1;
@@ -139,10 +147,11 @@
   }
 
   /* ≤767: 1/3-screen label, dropped back to its container's left edge */
-  @media (max-width: 767px) {
+  @media (max-width: 991px) {
     .sticky-fake-container::before {
-      width: calc(100vw / 3);
-      left: 0;
+      content: "0" counter(service-category) " " attr(data-category-name);
+      width: calc(100vw / 1.5);
+      left: -2px;
     }
   }
 
@@ -152,6 +161,18 @@
 
   .service-content-slider {
     height: calc(100vh - var(--service-folder-padding))
+  }
+
+  @media (max-width: 991px) {
+
+    /* Definite, content-independent width. Swiper sizes each slide to the container; with width:100%
+       the container resolves against a content-sized grid track, so slides→container→slides feed back
+       and clamp at 2^25 (~33.5M px). A viewport width (minus .service-content's 2rem side padding) gives
+       the slides a fixed reference and kills the loop. Tweak the 4rem if the true container differs. */
+    .service-content-slider {
+      width: 100%;
+      height: 12rem;
+    }
   }
 
   .service-content-name::after {
@@ -164,6 +185,13 @@
     position: absolute;
     right: -2rem;
     top: 1.2rem;
+  }
+
+  @media (max-width: 991px) {
+    .service-content-name::after {
+      display: none;
+      content: "";
+    }
   }
 
   .swiper-pagination {

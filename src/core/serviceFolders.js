@@ -24,8 +24,12 @@ export function prepareFolder(page, folder) {
     let contentPaddingTop = parseInt(window.getComputedStyle(content).paddingTop, 10)
     let sliderNewHeight = content.offsetHeight - nameHeight - contentGap - contentPaddingBottom - contentPaddingTop
 
-    //Recalculate height of slider
-    slider.style.height = (100 * sliderNewHeight / window.innerHeight) + "vh"
+    //Recalculate height of slider — desktop only. On mobile CSS sets a compact fixed height; the inline
+    //vh calc measures a desktop layout and blows up on a narrow screen (and that broken box is what
+    //throws Swiper's width into the millions of px)
+    if (!window.matchMedia('(max-width: 991px)').matches) {
+        slider.style.height = (100 * sliderNewHeight / window.innerHeight) + "vh"
+    }
 
     let swiper = createFolderSlider(page, slider)
     let reveal = revealFolderContent(folder)
@@ -56,6 +60,10 @@ function createFolderSlider(page, sliderContainer) {
 
     let swiper = new Swiper(swiperElement, {
         modules: [Navigation, Pagination, Autoplay],
+        //Recompute slide sizes if the container's box changes after init (mobile CSS settling, folder
+        //moved into place) — otherwise Swiper can bake a stale width and the slides never correct
+        observer: true,
+        observeParents: true,
         loop: multiple,
         snapToSlideEdge: true,
         speed: 400,

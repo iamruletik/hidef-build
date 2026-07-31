@@ -17,6 +17,13 @@ export class ArtistPage extends BasePage {
     }
 
     setup() {
+        //≤991: different design — no floating wrapper. Build the slider into the in-flow Webflow element
+        //instead (tracked via addSwiper, so it destroys with this page). See createMobileSlider.
+        if (window.matchMedia('(max-width: 991px)').matches) {
+            this.createMobileSlider()
+            return
+        }
+
         //Not wrapped in this.ctx.add() — everything here (and in createFloatingContainer/
         //createSlider) targets the persistent floating wrapper, which survives roster<->artist
         //navigation. Reverting it on this page's own destroy() would strip its positioning
@@ -28,6 +35,57 @@ export class ArtistPage extends BasePage {
 
         //Custom slider cursor is on for the artist page (single visible slider), off for roster
         if (this.floatingWrapper._cursorZones) this.floatingWrapper._cursorZones.style.pointerEvents = 'auto'
+    }
+
+    //≤991 slider: lives in .artist-mobile-slider-container (normal document flow, no absolute wrapper),
+    //controls in .artist-slider-buttons — prev/next via data attrs, middle div = fraction pagination.
+    createMobileSlider() {
+        let container = this.container.querySelector('.artist-mobile-slider-container')
+        if (!container) return
+
+        let swiperEl = document.createElement('div')
+        swiperEl.classList.add('swiper')
+        let swiperWrapper = document.createElement('div')
+        swiperWrapper.classList.add('swiper-wrapper')
+        swiperEl.append(swiperWrapper)
+        container.append(swiperEl)
+
+        this.imagesContainer.querySelectorAll('img').forEach((image) => {
+            let slide = document.createElement('div')
+            slide.classList.add('swiper-slide')
+            let img = document.createElement('img')
+            img.src = image.src
+            slide.append(img)
+            swiperWrapper.append(slide)
+        })
+
+        let slideCount = swiperWrapper.children.length
+        if (slideCount === 0) return
+        let multiple = slideCount > 1 //loop/autoplay only make sense with more than one slide
+
+        let buttons = this.container.querySelector('.artist-slider-buttons')
+        let prevEl = buttons?.querySelector('[data-slider-prev]')
+        let nextEl = buttons?.querySelector('[data-slider-next]')
+        //Middle div (the "1 / 6" label) — the only direct child without a prev/next data attr
+        let paginationEl = buttons
+            ? [...buttons.children].find((el) => !el.hasAttribute('data-slider-prev') && !el.hasAttribute('data-slider-next'))
+            : null
+
+        let swiper = new Swiper(swiperEl, {
+            modules: [Navigation, Pagination, Autoplay],
+            loop: multiple,
+            snapToSlideEdge: true,
+            speed: 400,
+            navigation: (prevEl && nextEl) ? { prevEl, nextEl } : false,
+            pagination: paginationEl ? { el: paginationEl, type: 'fraction' } : false,
+            autoplay: multiple && {
+                disableOnInteraction: false,
+                delay: 2000
+            }
+        })
+
+        //Tracked on the page — destroyed in BasePage.destroy() when barba swaps this container out
+        this.addSwiper(swiper)
     }
 
     createFloatingContainer() {

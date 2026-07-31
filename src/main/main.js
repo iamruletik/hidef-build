@@ -142,7 +142,8 @@ export class MainPage extends BasePage {
         }, "<")
 
         this.eventSliderTimeline.to(this.eventCylinderItems, {
-            "--zTranslation": "35vw",
+            //bigger radius on mobile — matches the ≤991 scaled-up cylinder so cards don't bunch up
+            "--zTranslation": window.matchMedia('(max-width: 991px)').matches ? "70vw" : "35vw",
         }, "<")
 
         this.eventCardsFanOut()
@@ -184,6 +185,18 @@ export class MainPage extends BasePage {
                     onUpdate: () => this.updateItemFog()
                 })
 
+                //Slow independent orbit, started once the cards are in. Runs on its own property (--orbit)
+                //so it never conflicts with the scrub's rotationY on .event_archive-slider or the fan-out's
+                //--position — GSAP only overwrites tweens sharing a property. 360deg ≡ 0deg so repeat is
+                //seamless. Fog reads --orbit too (see updateItemFog).
+                this.eventOrbitTween = gsap.fromTo(this.eventCylinderItems,
+                    { '--orbit': '0deg' },
+                    {
+                        '--orbit': '360deg',
+                        duration: 60, ease: 'none', repeat: -1,
+                        onUpdate: () => this.updateItemFog()
+                    })
+
                 if (textSplit) {
                     gsap.to(textSplit.lines, {
                         yPercent: 0,
@@ -215,12 +228,14 @@ export class MainPage extends BasePage {
     updateItemFog() {
         let quantity = this.eventCylinderItems.length
         let globalRotationY = gsap.getProperty(this.eventSlider, "rotationY")
+        //Slow orbit rides on its own var — fold it into the facing calc so fog tracks the orbit too
+        let orbit = parseFloat(gsap.getProperty(this.eventCylinderItems[0], '--orbit')) || 0
 
         this.eventCylinderItems.forEach((item, i) => {
             //Live --position, not the index — during the fan-out cards are between slots
             let position = parseFloat(gsap.getProperty(item, '--position')) || i + 1
             let ownAngle = (position - 1) * (360 / quantity)
-            let combinedAngle = (ownAngle + globalRotationY) * (Math.PI / 180)
+            let combinedAngle = (ownAngle + globalRotationY + orbit) * (Math.PI / 180)
             let facing = Math.cos(combinedAngle) // 1 = facing camera (near), -1 = facing away (far)
             let fogOpacity = (1 - facing) / 2 // 0 near, 1 far
 
@@ -297,7 +312,10 @@ export class MainPage extends BasePage {
         cards.forEach(card => { card.style.opacity = 0.5 })
         cards[total - 1].style.opacity = 1
 
-        let activeX = containerWidth - cardWidth
+        //Desktop: container is half-viewport-wide, so flush-right (containerWidth - cardWidth) lands the
+        //active card at viewport center. ≤991: container is full width, so flush-right would hit the screen
+        //edge — center it within the container instead.
+        let activeX = isMobile ? (containerWidth - cardWidth) / 2 : containerWidth - cardWidth
 
         function getSlotPositionX(slotIndex) {
             return activeX - (VISIBLE_COUNT - 1 - slotIndex) * CARD_STEP
@@ -660,9 +678,19 @@ export class MainPage extends BasePage {
         //Size Correctly Wrapper
         let controlsContainer = this.container.querySelector('.projects-content-buttons')
         let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
-        console.log(rootFontSize)
-        this.projectsSliderContainer.style.width = (window.innerWidth / 2 + this.projectsSliderItemDummy.offsetWidth / 2) / rootFontSize + "rem"
+        //Desktop: half-viewport + half-card offset so the active card lands off-center in the layout.
+        //≤991: full viewport width so the card just centers itself.
+        this.projectsSliderContainer.style.width = window.matchMedia('(max-width: 991px)').matches
+            ? "100%"
+            : (window.innerWidth / 2 + this.projectsSliderItemDummy.offsetWidth / 2) / rootFontSize + "rem"
         controlsContainer.style.width = this.projectsSliderItemDummy.offsetWidth / rootFontSize + "rem"
+        //Desktop: buttons ride the container's right edge (= viewport center, since container is half-width).
+        //≤991: container is full width, so right-edge = page edge — true-center them instead.
+        if (window.matchMedia('(max-width: 991px)').matches) {
+            controlsContainer.style.right = 'auto'
+            controlsContainer.style.left = '50%'
+            controlsContainer.style.transform = 'translateX(-50%)'
+        }
         this.projectsSliderItemDummy.remove()
 
 
@@ -717,6 +745,11 @@ export class MainPage extends BasePage {
 
     pinnedFolders() {
 
+        //No service folders in this container (empty CMS list, or the section isn't on the page) — nothing
+        //to pin. Guard so a missing/empty folder section doesn't throw (getComputedStyle on servicesFolders[0]
+        //when undefined) and take down the whole main-page mount
+        if (!this.servicesFolders.length) return
+
         setupServiceFolders(this.container) //projects-per-service counts + placeholder-button hide, before the layout is torn down
 
         this.folderWebflowContainer.remove() //Remove Webflow Layout
@@ -731,29 +764,66 @@ export class MainPage extends BasePage {
         let rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize)
         let folderPinHeight = (parseFloat(getComputedStyle(this.servicesFolders[0]).getPropertyValue('--top-folder-height')) || 0) * rootFontSize
 
+        let isMobile = window.matchMedia('(max-width: 991px)').matches
+
+        //Mobile: content can be taller than the folder's clipped box (.service-content is a fixed-height
+        //visible pinned area). The content fits its own auto-height box, but the box itself can run taller
+        //than the on-screen area once pinned (folder top sits at 10% + --top-folder-height). Overflow per
+        //folder = how far its box extends past that visible area; the timeline scrolls it up by that much.
+        let visibleArea = window.innerHeight - (window.innerHeight * 0.1 + folderPinHeight)
+        let overflows = [...this.servicesFolders].map((container) => {
+            if (!isMobile) return 0
+            let content = container.querySelector('.service-content')
+            if (!content) return 0
+            return Math.max(0, content.clientHeight - visibleArea)
+        })
+        let totalOverflow = overflows.reduce((sum, o) => sum + o, 0)
+
         // Create a timeline linked to the page scroll
         let servicesTimeline = gsap.timeline({
             scrollTrigger: {
                 trigger: this.foldersWrapper,
                 // Trigger top hits 10% of the viewport, offset down by --top-folder-height
                 start: () => `top ${window.innerHeight * 0.1 + folderPinHeight}px`,
-                end: () => `+=${window.innerHeight * 1 * this.servicesFolders.length}`, // Creates the scroll distance
+                //Desktop: one screen per folder. Mobile: one screen per reveal + the measured content
+                //overflow, so 1 timeline-second maps to innerHeight px and content scroll maps 1:1 to px
+                end: () => `+=${isMobile
+                    ? window.innerHeight * (this.servicesFolders.length - 1) + totalOverflow
+                    : window.innerHeight * this.servicesFolders.length}`,
                 scrub: true, // Ties the animation smoothly to the scroll wheel
                 pin: true,   // Pins the wrapper wrapper in place
                 refreshPriority: 2
             }
         });
 
-        setupFolderSnap(this, servicesTimeline.scrollTrigger, this.servicesFolders.length) //shared wheel snap
+        //Folder snap off on ≤991 — touch scrolling shouldn't get hijacked into forced folder-to-folder jumps
+        if (!isMobile) {
+            setupFolderSnap(this, servicesTimeline.scrollTrigger, this.servicesFolders.length) //shared wheel snap
+        }
 
-        // Animate each container up into view one by one
+        // Animate each container up into view one by one; on mobile also scroll its overflowing content
         this.servicesFolders.forEach((container, i) => {
 
             if (i > 0) {
                 servicesTimeline.from(container, {
-                    yPercent: 100, // Starts below the screen
-                    ease: "none"   // Keeps the movement uniform
+                    yPercent: 100,               // Starts below the screen
+                    ease: "none",                // Keeps the movement uniform
+                    duration: isMobile ? 1 : 0.5 // mobile: one full screen of scroll per reveal
                 })
+            }
+
+            //Scroll the folder's whole content up by its own overflow (duration in "screens" = overflow/innerHeight).
+            //Mobile stacks name+slider+right inside .service-content, so move every child together — not just the
+            //right column — and the clipped .service-content box reveals the lower part.
+            if (isMobile && overflows[i] > 0) {
+                let content = container.querySelector('.service-content')
+                if (content) {
+                    servicesTimeline.to(content.children, {
+                        y: -overflows[i],
+                        ease: "none",
+                        duration: overflows[i] / window.innerHeight
+                    })
+                }
             }
         })
 
@@ -774,6 +844,7 @@ export class MainPage extends BasePage {
 
         this.runningLineTimeline.kill()
         this.eventSliderTimeline.kill()
+        if (this.eventOrbitTween) this.eventOrbitTween.kill()
 
         ScrollTrigger.getAll().forEach((st) => {
             if (st.trigger && this.container.contains(st.trigger)) st.kill()

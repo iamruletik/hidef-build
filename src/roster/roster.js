@@ -20,6 +20,13 @@ export class RosterPage extends BasePage {
     }
 
     setup() {
+        //Runs on every viewport — flatten the CMS-generated specialty divs into one text line
+        this.concatSpecialties()
+
+        //≤991 has a different design — no floating hover wrapper at all. The whole interaction below is
+        //hover-to-reveal, which touch doesn't have anyway, so skip it entirely on mobile.
+        if (window.matchMedia('(max-width: 991px)').matches) return
+
         //Not wrapped in this.ctx.add() — createFloatingContainer's gsap.set and showSpecificImage's
         //hover tweens all target the persistent floating wrapper, which survives roster<->artist
         //navigation. Reverting them on this page's own destroy() would strip that wrapper's
@@ -32,6 +39,19 @@ export class RosterPage extends BasePage {
         //keep it off here (the artist page turns it on). Off = native cursor + no interference with the
         //roster list's own hover-to-show-image
         if (this.floatingWrapper._cursorZones) this.floatingWrapper._cursorZones.style.pointerEvents = 'none'
+    }
+
+    //CMS loads each specialty as its own .artist-specialty div; with little space the flex items shrink
+    //and read as separate chunks. Collapse each .roster-specialty-list into a single comma-joined text
+    //line so it wraps fluidly like one paragraph. Real commas (no trailing) replace the .artist-specialty
+    //div::after comma trick.
+    concatSpecialties() {
+        this.container.querySelectorAll('.roster-specialty-list').forEach((list) => {
+            let specialties = [...list.querySelectorAll('.artist-specialty')]
+                .map((s) => s.textContent.trim())
+                .filter(Boolean)
+            list.textContent = specialties.join(', ')
+        })
     }
 
     createFloatingContainer() {

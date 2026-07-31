@@ -22,3 +22,37 @@
     content: "0" counter(menu-large-link);
     opacity: var(--arrow-o, 0);
 }
+
+/* ≤991: the links are short, so left:0 on the link only reaches the link's own start. Anchor the
+   counter to the near-full-width parent instead and push it to the viewport's left gutter. Absolute
+   with ONLY `left` set keeps the element's in-flow vertical position, so each counter stays on its
+   own link's row without needing a per-link `top`. */
+@media (max-width: 991px) {
+    .menu-content-links-container {
+        position: relative;
+    }
+
+    .menu-large-link {
+        position: static;
+    }
+
+    .menu-large-link::after {
+        position: absolute;
+        left: 1.25rem;
+        padding-top: 0;
+    }
+}
+
+/* ≤991: the email is CMS-driven, so swap the label in CSS instead of editing the text node.
+   font-size:0 collapses the address to zero width so the link shrinks to fit; ::before renders
+   "EMAIL" at its own explicit size (it can't inherit — parent is 0). Adjust 1rem to match the link. */
+@media (max-width: 991px) {
+    .menu-mail-link .link-element>div:not(.link-element-arrow) {
+        font-size: 0;
+    }
+
+    .menu-mail-link .link-element>div:not(.link-element-arrow)::before {
+        content: "EMAIL";
+        font-size: 1rem;
+    }
+}
