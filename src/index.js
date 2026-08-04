@@ -510,6 +510,8 @@ function revealPageContent(container) {
         pageInstances.main.revealHeroBottom()
     } else if (namespace === 'services' && pageInstances.services) {
         pageInstances.services.revealMainScreen()
+    } else if (namespace === 'about' && pageInstances.about) {
+        pageInstances.about.revealMainScreen()
     }
 }
 

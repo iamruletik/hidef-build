@@ -8,8 +8,9 @@
     object-fit: cover;
   }
 
-  .about-content-headline-description-category {
+  .about-headline-category {
     counter-increment: category;
+    overflow: hidden;
   }
 
   .experience-content-video-container {
@@ -23,4 +24,16 @@
 
   .about-headline-category:nth-child(n+10) > .div::before {
     content: "(" counter(category) ") ";
+  }
+
+  /* Masked line reveal on about-content-headline-header clips glyph descenders (e.g. "g") without
+     this — scoped to just this headline, separate from the shared .reveal-line (see general.css)
+     used elsewhere, since padding needs differ per element/font-size. */
+  :has(> .about-headline-header-line) {
+    display: block;
+    margin-bottom: -0.1em;
+  }
+
+  .about-headline-header-line {
+    padding-bottom: 0.1em;
   }
